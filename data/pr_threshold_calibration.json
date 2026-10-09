@@ -1,0 +1,130 @@
+{
+  "n_merged": 30,
+  "n_unmerged": 30,
+  "dist_merged": {
+    "label": "已合并 PR",
+    "n": 30,
+    "min": 2,
+    "p25": 20,
+    "p50": 75,
+    "p75": 139,
+    "p90": 242,
+    "p95": 644,
+    "max": 958,
+    "mean": 132.8
+  },
+  "dist_unmerged": {
+    "label": "未合并 PR",
+    "n": 30,
+    "min": 0,
+    "p25": 20,
+    "p50": 27,
+    "p75": 60,
+    "p90": 93,
+    "p95": 202,
+    "max": 2097,
+    "mean": 110.4
+  },
+  "dist_all": {
+    "label": "全部样本",
+    "n": 60,
+    "min": 0,
+    "p25": 20,
+    "p50": 39,
+    "p75": 91,
+    "p90": 202,
+    "p95": 347,
+    "max": 2097,
+    "mean": 121.6
+  },
+  "signal_valid": true,
+  "sweep": [
+    {
+      "threshold": 10,
+      "n_high": 54,
+      "rate": 0.9,
+      "merged_high": 26,
+      "unmerged_high": 28
+    },
+    {
+      "threshold": 50,
+      "n_high": 26,
+      "rate": 0.43333333333333335,
+      "merged_high": 16,
+      "unmerged_high": 10
+    },
+    {
+      "threshold": 100,
+      "n_high": 12,
+      "rate": 0.2,
+      "merged_high": 10,
+      "unmerged_high": 2
+    },
+    {
+      "threshold": 150,
+      "n_high": 8,
+      "rate": 0.13333333333333333,
+      "merged_high": 6,
+      "unmerged_high": 2
+    },
+    {
+      "threshold": 200,
+      "n_high": 7,
+      "rate": 0.11666666666666667,
+      "merged_high": 5,
+      "unmerged_high": 2
+    },
+    {
+      "threshold": 300,
+      "n_high": 4,
+      "rate": 0.06666666666666667,
+      "merged_high": 3,
+      "unmerged_high": 1
+    },
+    {
+      "threshold": 400,
+      "n_high": 3,
+      "rate": 0.05,
+      "merged_high": 2,
+      "unmerged_high": 1
+    },
+    {
+      "threshold": 500,
+      "n_high": 3,
+      "rate": 0.05,
+      "merged_high": 2,
+      "unmerged_high": 1
+    },
+    {
+      "threshold": 800,
+      "n_high": 2,
+      "rate": 0.03333333333333333,
+      "merged_high": 1,
+      "unmerged_high": 1
+    },
+    {
+      "threshold": 1000,
+      "n_high": 1,
+      "rate": 0.016666666666666666,
+      "merged_high": 0,
+      "unmerged_high": 1
+    },
+    {
+      "threshold": 2097,
+      "n_high": 0,
+      "rate": 0.0,
+      "merged_high": 0,
+      "unmerged_high": 0
+    }
+  ],
+  "target_range": [
+    0.1,
+    0.2
+  ],
+  "recommended_threshold": 100,
+  "caveats": [
+    "样本量较小（已合并 30 / 未合并 30）",
+    "只用了改动量这一个信号；敏感文件命中数未纳入标定",
+    "不同仓库的改动量分布差异很大，跨仓库要重新标定"
+  ]
+}

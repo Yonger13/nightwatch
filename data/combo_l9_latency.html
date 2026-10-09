@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>Nightwatch · 组件组合实验</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+body{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+background:#0f1115;color:#e6e6e6;margin:0;padding:28px;line-height:1.65}
+h1{font-size:20px;font-weight:500;margin:0 0 4px}
+h2{font-size:16px;font-weight:500;margin:28px 0 10px;color:#8ab4f8}
+.sub{color:#8a8f98;font-size:13px;margin-bottom:22px}
+.card{background:#171a21;border:1px solid #262b35;border-radius:10px;
+padding:18px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid #262b35}
+th{color:#8a8f98;font-weight:500;font-size:12px}
+canvas{max-height:320px}
+.note{background:#1a1f2b;border-left:3px solid #8ab4f8;padding:12px 14px;
+border-radius:6px;font-size:13px;margin:14px 0}
+.warn{border-left-color:#f5a623}
+.ok{border-left-color:#4caf50}
+code{background:#22262f;padding:2px 6px;border-radius:4px;font-size:12.5px}
+</style></head><body>
+
+<h1>Nightwatch · 组件组合实验</h1>
+<div class="sub">L9 正交实验　orthogonal 设计　9 组组合
+　样本 5 条/组</div>
+
+<div class="note"><b>为什么做组合实验而不是单变量实验</b><br>
+单独测试每个组件会得出错误结论 —— Agent 的表现来自<b>整条链路的配合</b>。
+两个单独看都更好的选项，组合起来可能更差（负交互）。<br>
+<span style="color:#8a8f98">L9(3³) 正交表：9 次试验可估 3 个因子的主效应，但估不了两两交互（自由度不够）。属于筛选性实验。</span></div>
+
+<h2>成本-效果曲线</h2>
+<div class="card"><canvas id="ce"></canvas>
+<div class="note ok"><b>怎么读这张图</b><br>
+横轴 = 每条样本的平均 token（成本代理，与供应商单价无关）<br>
+纵轴 = 严格 F1 中位数（效果）<br>
+<b>只有帕累托前沿上的点（实心）值得选</b> ——
+其余点都存在"成本更低且效果更好"的配置。<br>
+<span style="color:#8a8f98">刻意不标"最优配置"：取舍取决于业务对成本/效果的容忍度，
+工具该做的是把权衡摊开，而不是替业务做决定。</span>
+</div></div>
+
+<h2>主效应（每个因子单独的影响幅度）</h2>
+<div class="grid">
+<div class="card"><canvas id="eff0"></canvas><div class="sub" style="margin:0">极差 0.000　⚠ 小于 0.1，样本量下不具统计意义</div></div><div class="card"><canvas id="eff1"></canvas><div class="sub" style="margin:0">极差 0.000　⚠ 小于 0.1，样本量下不具统计意义</div></div><div class="card"><canvas id="eff2"></canvas><div class="sub" style="margin:0">极差 0.000　⚠ 小于 0.1，样本量下不具统计意义</div></div>
+</div>
+
+<h2>全部实验组</h2>
+<div class="card"><table>
+<tr><th>组</th><th>模型档次</th><th>记忆策略</th><th>思考链</th><th>严格F1</th><th>Top-1</th><th>token/条</th>
+<th>中位步数</th><th>帕累托</th><th>错误</th></tr>
+<tr><td>run01</td><td>small</td><td>off</td><td>all_on</td><td>1.000</td><td>1.000</td><td>10735</td><td>3</td><td></td><td>0</td></tr>
+<tr><td>run02</td><td>small</td><td>episodic</td><td>policy</td><td>1.000</td><td>1.000</td><td>12287</td><td>3</td><td></td><td>0</td></tr>
+<tr><td>run03</td><td>small</td><td>episodic_semantic</td><td>all_off</td><td>1.000</td><td>1.000</td><td>10628</td><td>3</td><td>✓</td><td>0</td></tr>
+<tr><td>run04</td><td>medium</td><td>off</td><td>policy</td><td>1.000</td><td>1.000</td><td>13446</td><td>4</td><td></td><td>0</td></tr>
+<tr><td>run05</td><td>medium</td><td>episodic</td><td>all_off</td><td>1.000</td><td>1.000</td><td>11627</td><td>3</td><td></td><td>0</td></tr>
+<tr><td>run06</td><td>medium</td><td>episodic_semantic</td><td>all_on</td><td>1.000</td><td>1.000</td><td>12101</td><td>3</td><td></td><td>0</td></tr>
+<tr><td>run07</td><td>strong</td><td>off</td><td>all_off</td><td>1.000</td><td>1.000</td><td>10917</td><td>4</td><td></td><td>0</td></tr>
+<tr><td>run08</td><td>strong</td><td>episodic</td><td>all_on</td><td>1.000</td><td>1.000</td><td>12937</td><td>3</td><td></td><td>0</td></tr>
+<tr><td>run09</td><td>strong</td><td>episodic_semantic</td><td>policy</td><td>1.000</td><td>1.000</td><td>13248</td><td>3</td><td></td><td>0</td></tr>
+</table></div>
+
+<h2>推荐配置</h2>
+<div class="card">
+<table>
+<tr><th>优化目标</th><th>配置</th><th>成本</th><th>效果</th></tr>
+<tr><td>效果最好</td><td>small / off / all_on</td>
+<td>52</td>
+<td>1.000</td></tr>
+<tr><td>最省钱</td><td>small / episodic_semantic / all_off</td>
+<td>15</td>
+<td>1.000</td></tr>
+<tr><td>性价比最高</td><td>small / episodic_semantic / all_off</td>
+<td>15</td>
+<td>1.000</td></tr>
+<tr><td><b>效果达标里最省钱</b></td>
+<td><b>small / episodic_semantic / all_off</b></td>
+<td><b>15</b></td>
+<td><b>1.000</b></td></tr>
+</table>
+<div class="note"><b>为什么给四个"最优"而不是一个</b><br>
+"该多花 1 块钱换 0.01 的 F1"没有客观答案 —— 取决于业务容忍度。
+给一个"最优"等于替你做了价值判断。</div>
+</div>
+
+<script>
+const scatter = [{"x": 10735.0, "y": 1.0, "label": "small / off / all_on", "id": "run01", "frontier": false}, {"x": 12286.8, "y": 1.0, "label": "small / episodic / policy", "id": "run02", "frontier": false}, {"x": 10627.6, "y": 1.0, "label": "small / episodic_semantic / all_off", "id": "run03", "frontier": true}, {"x": 13446.4, "y": 1.0, "label": "medium / off / policy", "id": "run04", "frontier": false}, {"x": 11627.4, "y": 1.0, "label": "medium / episodic / all_off", "id": "run05", "frontier": false}, {"x": 12100.6, "y": 1.0, "label": "medium / episodic_semantic / all_on", "id": "run06", "frontier": false}, {"x": 10916.6, "y": 1.0, "label": "strong / off / all_off", "id": "run07", "frontier": false}, {"x": 12937.4, "y": 1.0, "label": "strong / episodic / all_on", "id": "run08", "frontier": false}, {"x": 13247.8, "y": 1.0, "label": "strong / episodic_semantic / policy", "id": "run09", "frontier": false}];
+const front = scatter.filter(p => p.frontier);
+new Chart(document.getElementById('ce'), {
+  type: 'scatter',
+  data: {datasets: [
+    {label: '帕累托前沿', data: front, backgroundColor: '#4caf50',
+      pointRadius: 7, pointStyle: 'rectRot'},
+    {label: '被支配（有更优组合）', data: scatter.filter(p => !p.frontier),
+      backgroundColor: '#5f6672', pointRadius: 5},
+    {label: '理想方向', data: [{x: Math.min(...scatter.map(p=>p.x)),
+      y: Math.max(...scatter.map(p=>p.y))},
+      {x: Math.max(...scatter.map(p=>p.x)), y: Math.min(...scatter.map(p=>p.y))}],
+      borderColor: '#8ab4f8', borderWidth: 1, borderDash: [5,5],
+      pointRadius: 0, showLine: true, fill: false}
+  ]},
+  options: {responsive: true, plugins: {legend: {labels: {color:'#e6e6e6'}},
+    tooltip: {callbacks: {label: c => c.raw.label + ' | 成本'
+      + c.raw.x.toFixed(0) + ' | F1 ' + c.raw.y.toFixed(3)}}},
+    scales: {x: {title: {display:true, text:'成本（token/条）', color:'#8a8f98'},
+      ticks:{color:'#8a8f98'}, grid:{color:'#262b35'}},
+      y: {title: {display:true, text:'严格 F1（中位数）', color:'#8a8f98'},
+      ticks:{color:'#8a8f98'}, grid:{color:'#262b35'}}}
+});
+
+const effects = {"模型档次": {"labels": ["small", "medium", "strong"], "values": [1.0, 1.0, 1.0], "range": 0.0}, "记忆策略": {"labels": ["off", "episodic", "episodic_semantic"], "values": [1.0, 1.0, 1.0], "range": 0.0}, "思考链": {"labels": ["all_on", "policy", "all_off"], "values": [1.0, 1.0, 1.0], "range": 0.0}};
+let i = 0;
+for (const [name, d] of Object.entries(effects)) {
+  new Chart(document.getElementById('eff' + i), {
+    type: 'bar',
+    data: {labels: d.labels, datasets: [{label: name, data: d.values,
+      backgroundColor: '#4c8bf5'}]},
+    options: {responsive: true,
+      plugins: {legend: {display:false},
+        title: {display:true, text: name + ' 的主效应', color:'#e6e6e6'}},
+      scales: {y: {ticks:{color:'#8a8f98'}, grid:{color:'#262b35'},
+        min: 0, max: 1}, x: {ticks:{color:'#8a8f98'}, grid:{display:false}}}
+  });
+  i++;
+}
+</script>
+</body></html>

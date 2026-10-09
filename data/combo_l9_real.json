@@ -1,0 +1,301 @@
+{
+  "design": {
+    "name": "L9 正交实验",
+    "kind": "orthogonal",
+    "n_runs": 9,
+    "notes": "L9(3³) 正交表：9 次试验可估 3 个因子的主效应，但估不了两两交互（自由度不够）。属于筛选性实验。",
+    "factors": [
+      {
+        "name": "模型档次",
+        "levels": [
+          "small",
+          "medium",
+          "strong"
+        ],
+        "description": "整条链路固定在同一档（force_tier）"
+      },
+      {
+        "name": "记忆策略",
+        "levels": [
+          "off",
+          "episodic",
+          "episodic_semantic"
+        ],
+        "description": "关闭 / 只用情景层 / 情景+语义"
+      },
+      {
+        "name": "思考链",
+        "levels": [
+          "all_on",
+          "policy",
+          "all_off"
+        ],
+        "description": "全开 / 按任务分档 / 全关"
+      }
+    ]
+  },
+  "config": {
+    "dataset": "D:\\agent program\\data\\pandas_eval.json",
+    "limit": 5,
+    "real_llm": true,
+    "elapsed_sec": 1981.9
+  },
+  "results": [
+    {
+      "run_id": "run01",
+      "settings": {
+        "模型档次": "small",
+        "记忆策略": "off",
+        "思考链": "all_on"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 0.9333,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 53675,
+      "tokens_median": 10478,
+      "steps_median": 3,
+      "cost_per_item": 10735.0,
+      "latency_median_ms": 51770,
+      "over_label": 0.2,
+      "errors": [],
+      "null_store_calls": 15
+    },
+    {
+      "run_id": "run02",
+      "settings": {
+        "模型档次": "small",
+        "记忆策略": "episodic",
+        "思考链": "policy"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 0.9333,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 61434,
+      "tokens_median": 12156,
+      "steps_median": 3,
+      "cost_per_item": 12286.8,
+      "latency_median_ms": 44922,
+      "over_label": 0.2,
+      "errors": [],
+      "memory_count": 6
+    },
+    {
+      "run_id": "run03",
+      "settings": {
+        "模型档次": "small",
+        "记忆策略": "episodic_semantic",
+        "思考链": "all_off"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 53138,
+      "tokens_median": 10871,
+      "steps_median": 3,
+      "cost_per_item": 10627.6,
+      "latency_median_ms": 14783,
+      "over_label": 0.0,
+      "errors": [],
+      "memory_count": 5
+    },
+    {
+      "run_id": "run04",
+      "settings": {
+        "模型档次": "medium",
+        "记忆策略": "off",
+        "思考链": "policy"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 67232,
+      "tokens_median": 13672,
+      "steps_median": 4,
+      "cost_per_item": 13446.4,
+      "latency_median_ms": 54844,
+      "over_label": 0.0,
+      "errors": [],
+      "null_store_calls": 18
+    },
+    {
+      "run_id": "run05",
+      "settings": {
+        "模型档次": "medium",
+        "记忆策略": "episodic",
+        "思考链": "all_off"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 58137,
+      "tokens_median": 10953,
+      "steps_median": 3,
+      "cost_per_item": 11627.4,
+      "latency_median_ms": 16188,
+      "over_label": 0.0,
+      "errors": [],
+      "memory_count": 5
+    },
+    {
+      "run_id": "run06",
+      "settings": {
+        "模型档次": "medium",
+        "记忆策略": "episodic_semantic",
+        "思考链": "all_on"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 0.6,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 60503,
+      "tokens_median": 11647,
+      "steps_median": 3,
+      "cost_per_item": 12100.6,
+      "latency_median_ms": 51752,
+      "over_label": -0.4,
+      "errors": [],
+      "memory_count": 6
+    },
+    {
+      "run_id": "run07",
+      "settings": {
+        "模型档次": "strong",
+        "记忆策略": "off",
+        "思考链": "all_off"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 54583,
+      "tokens_median": 11312,
+      "steps_median": 4,
+      "cost_per_item": 10916.6,
+      "latency_median_ms": 18059,
+      "over_label": 0.0,
+      "errors": [],
+      "null_store_calls": 18
+    },
+    {
+      "run_id": "run08",
+      "settings": {
+        "模型档次": "strong",
+        "记忆策略": "episodic",
+        "思考链": "all_on"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 0.8,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 64687,
+      "tokens_median": 12567,
+      "steps_median": 3,
+      "cost_per_item": 12937.4,
+      "latency_median_ms": 76901,
+      "over_label": 0.0,
+      "errors": [],
+      "memory_count": 5
+    },
+    {
+      "run_id": "run09",
+      "settings": {
+        "模型档次": "strong",
+        "记忆策略": "episodic_semantic",
+        "思考链": "policy"
+      },
+      "n": 5,
+      "f1": 1.0,
+      "f1_mean": 0.9333,
+      "top1": 1.0,
+      "hit2": 1.0,
+      "tokens": 66239,
+      "tokens_median": 13639,
+      "steps_median": 3,
+      "cost_per_item": 13247.8,
+      "latency_median_ms": 63294,
+      "over_label": 0.2,
+      "errors": [],
+      "memory_count": 5
+    }
+  ],
+  "main_effects": {
+    "模型档次": {
+      "means": {
+        "small": 1.0,
+        "medium": 1.0,
+        "strong": 1.0
+      },
+      "range": 0.0,
+      "best": "small",
+      "worst": "small"
+    },
+    "记忆策略": {
+      "means": {
+        "off": 1.0,
+        "episodic": 1.0,
+        "episodic_semantic": 1.0
+      },
+      "range": 0.0,
+      "best": "off",
+      "worst": "off"
+    },
+    "思考链": {
+      "means": {
+        "all_on": 1.0,
+        "policy": 1.0,
+        "all_off": 1.0
+      },
+      "range": 0.0,
+      "best": "all_on",
+      "worst": "all_on"
+    }
+  },
+  "recommendation": {
+    "最省效果": {
+      "label": "small / off / all_on",
+      "cost": 10735.0,
+      "effect": 1.0
+    },
+    "最省钱": {
+      "label": "small / episodic_semantic / all_off",
+      "cost": 10627.6,
+      "effect": 1.0
+    },
+    "性价比最高": {
+      "label": "small / episodic_semantic / all_off",
+      "cost": 10627.6,
+      "effect": 1.0
+    },
+    "达标里最省": {
+      "label": "small / episodic_semantic / all_off",
+      "cost": 10627.6,
+      "effect": 1.0
+    },
+    "帕累托前沿": [
+      {
+        "label": "small / episodic_semantic / all_off",
+        "cost": 10627.6,
+        "effect": 1.0
+      }
+    ]
+  },
+  "caveats": [
+    "orthogonal 设计只有 8 个自由度，留给误差的自由度有限 —— 这是筛选性实验，不是确证性实验",
+    "差异小于 0.1 的结论不该采信（样本量 + 自由度都不够）",
+    "成本用 token 数代理，未换算成金额（各家单价不同）",
+    "'情景+语义'因子在干净实验库上与'只情景'无差别（语义层需要先跑扫描+人工审核才有内容）"
+  ]
+}

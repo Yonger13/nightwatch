@@ -1,0 +1,112 @@
+# =============================================================================
+# Nightwatch · 每日分诊循环
+# =============================================================================
+# 这个 workflow 让 Agent 每天对真实仓库的新 issue 跑一次分诊，
+# 并回头对账"预测 vs 维护者真实标签"。
+#
+# ★ 跑两周的意义
+#   不是脚本在跑，而是**状态库在积累**（`data/daily_triage.db`）——
+#   这正是"脚本"和"系统"的区别。
+#
+# =============================================================================
+# 使用前提（三条，缺一不可）
+# =============================================================================
+# ① 项目要推到 GitHub（Actions 只在 GitHub 上跑）
+#      git init && git add . && git commit -m "init"
+#      git remote add origin git@github.com:<你>/nightwatch.git
+#      git push -u origin main
+#
+# ② 配好 Secret：仓库 Settings → Secrets → Actions → New repository secret
+#      Name: NW_GITHUB_TOKEN
+#      Value: 你的 GitHub PAT（只需 public_repo 读权限）
+#
+# ③ 状态要能跨次运行保留 —— 见下面的 cache 设计说明
+#
+# =============================================================================
+# ★ 关于状态持久化：为什么用 cache 而不是 commit 回仓库
+# =============================================================================
+# 状态库（daily_triage.db）必须跨次运行保留，有两种做法：
+#
+#   做法 A：每次跑完把 db commit 回仓库
+#     优点：状态可见、可追溯（git history 就是运行历史）
+#     缺点：**会把数据文件写进仓库历史**，几周后仓库里几百个版本
+#
+#   做法 B：用 Actions cache 保存（本配置的做法）
+#     优点：不污染仓库
+#     缺点：**cache 有 7 天过期**，且"同 key 的 cache 不可变"需要处理
+#
+# 这里选 B，并用 "日期作为 key 的一部分" 来绕开"cache 不可变"的限制：
+#   每次跑会新建一个 key（含 run 序号），restore-keys 前缀匹配拿到上一份。
+#   这是 GitHub Actions 上做"跨次持久化"的标准技巧。
+#
+# **这个取舍本身值得写进文档** —— 它说明"持续运行的系统"要解决
+# 一类脚本不需要管的问题：**状态放哪。**
+
+name: daily-triage
+
+on:
+  schedule:
+    # UTC 02:00 = 北京时间 10:00（避开整点，Actions 上整点更拥堵）
+    # ★ Actions 的 cron 不保证准时（延迟几分钟到几小时都正常），
+    #   本任务不依赖精确时间，所以可以接受。
+    - cron: "17 2 * * *"
+  workflow_dispatch:          # 支持手动触发（调试用）
+
+# 同一时间只允许一个实例 —— 防止重入导致状态竞争
+concurrency:
+  group: daily-triage
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40        # 20 条 × 70 秒 ≈ 24 分钟，留足余量
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 安装依赖（只装真实模型需要的 httpx）
+        run: pip install httpx
+
+      - name: 恢复状态库
+        uses: actions/cache/restore@v4
+        with:
+          path: data/daily_triage.db
+          # ★ key 里带 run_id，保证每次都能"新建"一个 key；
+          #   restore-keys 用前缀匹配拿到上一次的 cache。
+          #   这是绕开"cache 不可变"的标准做法。
+          key: triage-db-${{ github.run_id }}
+          restore-keys: |
+            triage-db-
+
+      - name: 跑一轮分诊
+        env:
+          NW_GITHUB_TOKEN: ${{ secrets.NW_GITHUB_TOKEN }}
+          # 模型配置（按你的服务商改）
+          NW_LLM_API_KEY: ${{ secrets.NW_LLM_API_KEY }}
+          NW_LLM_BASE_URL: ${{ secrets.NW_LLM_BASE_URL }}
+        run: |
+          python scripts/daily_triage.py --once --limit 20
+
+      - name: 输出状态报告
+        if: always()
+        run: python scripts/daily_triage.py --status | tee status.txt
+
+      - name: 保存状态库
+        if: always()             # ★ 即使这轮失败也要保存 —— 否则已预测的记录全丢
+        uses: actions/cache/save@v4
+        with:
+          path: data/daily_triage.db
+          key: triage-db-${{ github.run_id }}
+
+      - name: 把状态报告存成 artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-status-${{ github.run_number }}
+          path: status.txt
+          retention-days: 30

@@ -1,0 +1,493 @@
+{
+  "meta": {
+    "paddings": [
+      0,
+      30,
+      60,
+      100
+    ],
+    "runs_per_cell": 2,
+    "window_size": 8000,
+    "model": "real",
+    "warning": ""
+  },
+  "summary": {
+    "表": [
+      {
+        "轮数": 0,
+        "A · system有约束+状态卡": 1.0,
+        "A · system有约束+状态卡_n": 2,
+        "B · system有约束+无状态卡": 1.0,
+        "B · system有约束+无状态卡_n": 2,
+        "C · system无约束+无状态卡": 0.6667,
+        "C · system无约束+无状态卡_n": 2
+      },
+      {
+        "轮数": 30,
+        "A · system有约束+状态卡": 1.0,
+        "A · system有约束+状态卡_n": 2,
+        "B · system有约束+无状态卡": 1.0,
+        "B · system有约束+无状态卡_n": 2,
+        "C · system无约束+无状态卡": 0.6667,
+        "C · system无约束+无状态卡_n": 2
+      },
+      {
+        "轮数": 60,
+        "A · system有约束+状态卡": 1.0,
+        "A · system有约束+状态卡_n": 2,
+        "B · system有约束+无状态卡": 0.6667,
+        "B · system有约束+无状态卡_n": 2,
+        "C · system无约束+无状态卡": 0.3333,
+        "C · system无约束+无状态卡_n": 2
+      },
+      {
+        "轮数": 100,
+        "A · system有约束+状态卡": 1.0,
+        "A · system有约束+状态卡_n": 2,
+        "B · system有约束+无状态卡": 0.8333,
+        "B · system有约束+无状态卡_n": 2,
+        "C · system无约束+无状态卡": 0.6667,
+        "C · system无约束+无状态卡_n": 2
+      }
+    ],
+    "组": [
+      "A · system有约束+状态卡",
+      "B · system有约束+无状态卡",
+      "C · system无约束+无状态卡"
+    ],
+    "趋势": {
+      "A · system有约束+状态卡": {
+        "首": 1.0,
+        "末": 1.0,
+        "变化": 0.0,
+        "结论": "稳定"
+      },
+      "B · system有约束+无状态卡": {
+        "首": 1.0,
+        "末": 0.8333,
+        "变化": -0.1667,
+        "结论": "下降"
+      },
+      "C · system无约束+无状态卡": {
+        "首": 0.6667,
+        "末": 0.6667,
+        "变化": 0.0,
+        "结论": "稳定"
+      }
+    },
+    "口径": {
+      "指标": "约束遵守率（1 - 违规数/检查数）",
+      "检查数说明": "不适用的检查不计入分母（如无历史相似 issue 时跳过判重检查）",
+      "局限": "约束判定是规则化的近似，只检查'有没有'，不检查'好不好'；样本量偏小时趋势仅供方向参考"
+    }
+  },
+  "rows": [
+    {
+      "padding": 0,
+      "group": "A · system有约束+状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3206,
+      "max_utilization": 0.3206,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 0,
+      "group": "A · system有约束+状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3209,
+      "max_utilization": 0.3209,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 0,
+      "group": "B · system有约束+无状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3166,
+      "max_utilization": 0.3166,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 0,
+      "group": "B · system有约束+无状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.316,
+      "max_utilization": 0.316,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 0,
+      "group": "C · system无约束+无状态卡",
+      "run": 0,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.2901,
+      "max_utilization": 0.2901,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 0,
+      "group": "C · system无约束+无状态卡",
+      "run": 1,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.2901,
+      "max_utilization": 0.2901,
+      "evicted": 0,
+      "compressed": 0,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 30,
+      "group": "A · system有约束+状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3889,
+      "max_utilization": 0.3889,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4009
+    },
+    {
+      "padding": 30,
+      "group": "A · system有约束+状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 2,
+      "utilization": 0.4066,
+      "max_utilization": 0.4066,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 30,
+      "group": "B · system有约束+无状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.364,
+      "max_utilization": 0.364,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.7
+    },
+    {
+      "padding": 30,
+      "group": "B · system有约束+无状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3689,
+      "max_utilization": 0.3689,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 30,
+      "group": "C · system无约束+无状态卡",
+      "run": 0,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.3399,
+      "max_utilization": 0.3399,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 30,
+      "group": "C · system无约束+无状态卡",
+      "run": 1,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.3399,
+      "max_utilization": 0.3399,
+      "evicted": 0,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 60,
+      "group": "A · system有约束+状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3861,
+      "max_utilization": 0.3861,
+      "evicted": 17,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 60,
+      "group": "A · system有约束+状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3864,
+      "max_utilization": 0.3864,
+      "evicted": 17,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 60,
+      "group": "B · system有约束+无状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 3,
+      "violations": [],
+      "n_steps": 3,
+      "utilization": 0.4109,
+      "max_utilization": 0.4109,
+      "evicted": 17,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 2,
+      "confidence": 0.8
+    },
+    {
+      "padding": 60,
+      "group": "B · system有约束+无状态卡",
+      "run": 1,
+      "adherence": 0.33333333333333337,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：此 issue 描述了调用接口时配置不生效的问题，没有找到高度相似的历史 issue，建议打上 bug/config 标签进一步调查。",
+        "[high] 置信度与证据匹配: 无引用依据却给出高置信度 （confidence=0.60 > 0.3），属于「自信地胡说」的典型模式"
+      ],
+      "n_steps": 2,
+      "utilization": 0.3771,
+      "max_utilization": 0.3771,
+      "evicted": 17,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.6
+    },
+    {
+      "padding": 60,
+      "group": "C · system无约束+无状态卡",
+      "run": 0,
+      "adherence": 0.33333333333333337,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。",
+        "[medium] 不得重复调用同一工具: 检测到 2 次连续相同参数的工具调用"
+      ],
+      "n_steps": 20,
+      "utilization": 0.3977,
+      "max_utilization": 0.3977,
+      "evicted": 13,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 60,
+      "group": "C · system无约束+无状态卡",
+      "run": 1,
+      "adherence": 0.33333333333333337,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。",
+        "[medium] 不得重复调用同一工具: 检测到 3 次连续相同参数的工具调用"
+      ],
+      "n_steps": 20,
+      "utilization": 0.3825,
+      "max_utilization": 0.429,
+      "evicted": 13,
+      "compressed": 2,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 100,
+      "group": "A · system有约束+状态卡",
+      "run": 0,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3866,
+      "max_utilization": 0.3866,
+      "evicted": 57,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 100,
+      "group": "A · system有约束+状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 4,
+      "violations": [],
+      "n_steps": 1,
+      "utilization": 0.3916,
+      "max_utilization": 0.3916,
+      "evicted": 57,
+      "compressed": 1,
+      "has_dup": true,
+      "cites": 1,
+      "confidence": 0.4714
+    },
+    {
+      "padding": 100,
+      "group": "B · system有约束+无状态卡",
+      "run": 0,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：请提供新提交的issue内容以便进一步处理。"
+      ],
+      "n_steps": 2,
+      "utilization": 0.3272,
+      "max_utilization": 0.3272,
+      "evicted": 57,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 100,
+      "group": "B · system有约束+无状态卡",
+      "run": 1,
+      "adherence": 1.0,
+      "checks": 3,
+      "violations": [],
+      "n_steps": 2,
+      "utilization": 0.3944,
+      "max_utilization": 0.3944,
+      "evicted": 57,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 1,
+      "confidence": 0.0
+    },
+    {
+      "padding": 100,
+      "group": "C · system无约束+无状态卡",
+      "run": 0,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.404,
+      "max_utilization": 0.404,
+      "evicted": 53,
+      "compressed": 1,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    },
+    {
+      "padding": 100,
+      "group": "C · system无约束+无状态卡",
+      "run": 1,
+      "adherence": 0.6666666666666667,
+      "checks": 3,
+      "violations": [
+        "[medium] 必须给出引用依据: 结论未附带任何引用（cites 为空）。摘要：建议人工介入。已收集的证据见 evidence 字段；若为循环导致，请检查工具描述是否让模型产生了误解。"
+      ],
+      "n_steps": 20,
+      "utilization": 0.3186,
+      "max_utilization": 0.4462,
+      "evicted": 53,
+      "compressed": 2,
+      "has_dup": false,
+      "cites": 0,
+      "confidence": 0.0
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+# ============================================================================
+# Nightwatch · .gitignore
+# ============================================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- 虚拟环境 ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- 测试与类型检查 ---
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- 环境变量（**绝对不要提交 API key**）---
+.env
+.env.*
+!.env.example
+
+# ============================================================================
+# 运行时数据
+# ============================================================================
+# 以下都是运行时生成的，不进版本控制。
+# 想要复现它们，跑对应的脚本（见 docs/06-后续待办.md）：
+#   python scripts/sweep_threshold.py     → data/_thr_sweep.txt
+#   python scripts/run_eval.py            → data/*.db
+#   python scripts/collect_issues.py      → data/*.json
+
+# 数据库
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# 工具结果卸载目录（体积会很快涨起来）
+data/offload/
+
+# 临时文件（下划线前缀 = 跑脚本时的中间产物）
+# ★ 约定：所有临时文件用 `_` 前缀命名，这样一条规则就能全部排除。
+data/_*
+scripts/_*
+experiments/**/_*
+_recall_seg.txt
+
+# 实验产物（可重新生成）
+experiments/langgraph_compare/compare_result.json
+experiments/langgraph_compare/graph.mmd
+
+# 采集到的数据集（可能含大量数据）
+data/*_dataset.json
+data/flask_dataset.json
+
+# 但**保留**扫描/诊断的记录文件 —— 它们体积小、有追溯价值，
+# 而且文档里引用了其中的具体数字。
+!data/_thr_sweep.txt
+
+# --- 编辑器 ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

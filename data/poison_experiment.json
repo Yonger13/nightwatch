@@ -1,0 +1,198 @@
+{
+  "config": {
+    "dataset": "D:\\agent program\\data\\pandas_eval.json",
+    "limit": 5,
+    "real_llm": false
+  },
+  "baseline": {
+    "label": "baseline",
+    "n": 5,
+    "f1_median": 0.0,
+    "f1_mean": 0.0,
+    "exposed_total": 0,
+    "exposed_by_poison": {}
+  },
+  "after_poison": {
+    "label": "after_poison",
+    "n": 5,
+    "f1_median": 0.0,
+    "f1_mean": 0.0,
+    "exposed_total": 4,
+    "exposed_by_poison": {
+      "p_d4575999": 4
+    }
+  },
+  "after_correct": {
+    "label": "after_correct",
+    "n": 5,
+    "f1_median": 0.0,
+    "f1_mean": 0.0,
+    "exposed_total": 0,
+    "exposed_by_poison": {}
+  },
+  "poison_specs": [
+    {
+      "type": "wrong_resolution",
+      "issue_id": "#P1001",
+      "symptom": "read_csv 读取大文件时内存暴涨 OOM",
+      "tags": [
+        "memory",
+        "oom",
+        "read_csv"
+      ],
+      "wrong": "调大 JVM 堆内存（-Xmx8g）即可缓解",
+      "correct": "加 dtype 参数 + chunksize 分批读",
+      "why": "内容读起来像一条正常建议，但对 Python 场景是错的 —— 照做会浪费一天",
+      "poison_id": "p_635f09e9",
+      "memory_id": "poison_f73de34d"
+    },
+    {
+      "type": "wrong_root_cause",
+      "issue_id": "#P1002",
+      "symptom": "CI 流水线偶发超时失败",
+      "tags": [
+        "timeout",
+        "ci"
+      ],
+      "wrong": "根因是网络抖动，重跑即可恢复",
+      "correct": "根因是 SA 缺 secret 读取权限，重试耗尽后超时",
+      "why": "把系统性问题归因为偶发 —— 会让人反复重跑而不是修权限",
+      "poison_id": "p_7f5b10ec",
+      "memory_id": "poison_8a39f097"
+    },
+    {
+      "type": "wrong_tags",
+      "issue_id": "#P1003",
+      "symptom": "DataFrame.merge 结果行数异常增多",
+      "tags": [
+        "encoding",
+        "csv"
+      ],
+      "wrong": "指定 encoding='utf-8' 后行数恢复正常",
+      "correct": "键列有重复值导致笛卡尔积，需先去重或加 validate",
+      "why": "**内容看起来对，只是匹配错了对象** —— 未来遇到编码问题时会被错误召回",
+      "poison_id": "p_71199555",
+      "memory_id": "poison_a0bd614b"
+    },
+    {
+      "type": "stale",
+      "issue_id": "#P1004",
+      "symptom": "pandas 警告 FutureWarning: iteritems is deprecated",
+      "tags": [
+        "deprecate",
+        "warnings"
+      ],
+      "wrong": "忽略该警告即可，iteritems 将在 2.0 移除但暂时可用",
+      "correct": "改用 items()（2.0 已移除 iteritems）",
+      "why": "★ **这条在 1.x 时是对的，2.0 之后失效** —— 内容完全合理，**只有知道版本变更才能发现**",
+      "poison_id": "p_d4575999",
+      "memory_id": "poison_9a4dd588"
+    },
+    {
+      "type": "over_generalized",
+      "issue_id": "#P1005",
+      "symptom": "读取 CSV 时中文乱码",
+      "tags": [
+        "encoding",
+        "csv",
+        "read_csv"
+      ],
+      "wrong": "所有编码问题都可以通过指定 encoding='gbk' 解决",
+      "correct": "需按实际编码指定（中文环境常见 GBK，但也可能是 GB18030）",
+      "why": "从一个个案泛化成通则 —— **单条都对，组合起来是错的**",
+      "poison_id": "p_93d7e207",
+      "memory_id": "poison_68880dba"
+    }
+  ],
+  "per_poison": [
+    {
+      "poison_id": "p_635f09e9",
+      "type": "wrong_resolution",
+      "exposed": 0,
+      "derived": 1,
+      "feedback_needed": 2,
+      "spread": 1
+    },
+    {
+      "poison_id": "p_7f5b10ec",
+      "type": "wrong_root_cause",
+      "exposed": 0,
+      "derived": 1,
+      "feedback_needed": 2,
+      "spread": 1
+    },
+    {
+      "poison_id": "p_71199555",
+      "type": "wrong_tags",
+      "exposed": 0,
+      "derived": 1,
+      "feedback_needed": 2,
+      "spread": 1
+    },
+    {
+      "poison_id": "p_d4575999",
+      "type": "stale",
+      "exposed": 4,
+      "derived": 1,
+      "feedback_needed": 2,
+      "spread": 5
+    },
+    {
+      "poison_id": "p_93d7e207",
+      "type": "over_generalized",
+      "exposed": 0,
+      "derived": 1,
+      "feedback_needed": 2,
+      "spread": 1
+    }
+  ],
+  "summary": {
+    "注入总数": 5,
+    "已纠正": 5,
+    "仍有效": 0,
+    "总暴露次数": 4,
+    "总派生记忆": 5,
+    "按类型": {
+      "wrong_resolution": {
+        "数量": 1,
+        "平均反馈次数": 2.0,
+        "总暴露": 0,
+        "总派生": 1,
+        "检测难度": "中（照做失败后能发现）"
+      },
+      "wrong_root_cause": {
+        "数量": 1,
+        "平均反馈次数": 2.0,
+        "总暴露": 0,
+        "总派生": 1,
+        "检测难度": "中（排查方向偏了才有感觉）"
+      },
+      "wrong_tags": {
+        "数量": 1,
+        "平均反馈次数": 2.0,
+        "总暴露": 0,
+        "总派生": 1,
+        "检测难度": "高（内容对，只是匹配错对象）"
+      },
+      "stale": {
+        "数量": 1,
+        "平均反馈次数": 2.0,
+        "总暴露": 4,
+        "总派生": 1,
+        "检测难度": "最高（内容合理，只有知道版本变更才能发现）"
+      },
+      "over_generalized": {
+        "数量": 1,
+        "平均反馈次数": 2.0,
+        "总暴露": 0,
+        "总派生": 1,
+        "检测难度": "高（单条都对，组合起来才错）"
+      }
+    }
+  },
+  "caveats": [
+    "哈希伪向量下召回不准，可能测不出真实的暴露范围",
+    "派生记忆是显式模拟的（真实系统由记忆六环节产生）",
+    "污染构造刻意「看起来合理」——这是一条实验有效性前提"
+  ]
+}

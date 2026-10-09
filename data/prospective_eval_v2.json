@@ -1,0 +1,1283 @@
+{
+  "meta": {
+    "repo": "pandas-dev/pandas",
+    "collected_at": "2026-10-08 19:26:09",
+    "n_candidates": 90,
+    "n_valid": 61,
+    "n_no_label": 28,
+    "n_too_late": 1,
+    "window_days": [
+      21,
+      75
+    ],
+    "max_label_days": 14,
+    "purpose": "前瞻验证（历史回溯）：用 issue 创建时的信息预测，对照维护者后来打上的首个类型标签。",
+    "caveats": [
+      "body 被编辑过的样本，用的是编辑后版本（API 无编辑历史）",
+      "对照的是「首个类型标签」，不含组件标签与状态标签",
+      "只覆盖 pandas 一个仓库"
+    ],
+    "model": "real",
+    "n": 61,
+    "elapsed_sec": 1731.1
+  },
+  "results": [
+    {
+      "issue_id": "#68962",
+      "title": "ENH: Total (that is: sum or \"margins\") for value_counts()",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 7880,
+      "error": ""
+    },
+    {
+      "issue_id": "#68935",
+      "title": "DOC: Broken links in stable \"Debugging C extensions\" documentation",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 3520,
+      "error": ""
+    },
+    {
+      "issue_id": "#68597",
+      "title": "Regression: pandas 3.1.0 in cygwin throws error in subprocess",
+      "predicted": [
+        "Regression",
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Regression",
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": false,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 2,
+      "tokens": 13222,
+      "error": ""
+    },
+    {
+      "issue_id": "#68505",
+      "title": "BUG: parallel read_csv with sqlite converters",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 2.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 7641,
+      "error": ""
+    },
+    {
+      "issue_id": "#68437",
+      "title": "DOC/RLS: improve the 3.1.0 whatsnew notes",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 0,
+      "tokens": 3507,
+      "error": ""
+    },
+    {
+      "issue_id": "#68433",
+      "title": "ENH: move the postgresql extra from psycopg2 to psycopg 3",
+      "predicted": [
+        "Enhancement",
+        "Build"
+      ],
+      "predicted_raw": [
+        "Enhancement",
+        "Build"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": false,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 0,
+      "tokens": 4034,
+      "error": ""
+    },
+    {
+      "issue_id": "#68372",
+      "title": "BUG: mixed int64/float64 Index operations falsely match distinct label",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 8348,
+      "error": ""
+    },
+    {
+      "issue_id": "#68354",
+      "title": "BUG: SparseArray-backed Series.any reverses skipna handling for float6",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 8184,
+      "error": ""
+    },
+    {
+      "issue_id": "#68310",
+      "title": "BUG: .to_latex() throws an exception in some cases",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 8170,
+      "error": ""
+    },
+    {
+      "issue_id": "#68264",
+      "title": "BUG: `RangeIndex.symmetric_difference` skips required sort when one si",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 12519,
+      "error": ""
+    },
+    {
+      "issue_id": "#68041",
+      "title": "BUG: read_csv fails to finalize index when engine='pyarrow' and dtype ",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 13000,
+      "error": ""
+    },
+    {
+      "issue_id": "#68026",
+      "title": "BUG: to_xml() export not valid for bool dtype",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 8662,
+      "error": ""
+    },
+    {
+      "issue_id": "#68009",
+      "title": "BUG: addition of non-UTC DatetimeArray with large Timedelta returns No",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4002,
+      "error": ""
+    },
+    {
+      "issue_id": "#67986",
+      "title": "CI: sanitizers environment has no pyarrow, so the read_csv pyarrow str",
+      "predicted": [
+        "Build"
+      ],
+      "predicted_raw": [
+        "Build"
+      ],
+      "gold": [
+        "Build"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4363,
+      "error": ""
+    },
+    {
+      "issue_id": "#67985",
+      "title": "BUG: validate_test_dependencies.py is blind to pixi [target.*.dependen",
+      "predicted": [
+        "Build"
+      ],
+      "predicted_raw": [
+        "Build"
+      ],
+      "gold": [
+        "Build"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4218,
+      "error": ""
+    },
+    {
+      "issue_id": "#67983",
+      "title": "CI: setup-pixi action's environment input description points at pyproj",
+      "predicted": [
+        "Build"
+      ],
+      "predicted_raw": [
+        "Build"
+      ],
+      "gold": [
+        "Build"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 5144,
+      "error": ""
+    },
+    {
+      "issue_id": "#67982",
+      "title": "CI: pixi-version is pinned in three places and dependabot bumps none o",
+      "predicted": [
+        "Build"
+      ],
+      "predicted_raw": [
+        "Build"
+      ],
+      "gold": [
+        "Build"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9367,
+      "error": ""
+    },
+    {
+      "issue_id": "#67970",
+      "title": "PERF: avoid per-element group labels in nullable DataFrame axis=1 redu",
+      "predicted": [
+        "Performance"
+      ],
+      "predicted_raw": [
+        "Performance"
+      ],
+      "gold": [
+        "Performance"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 0,
+      "tokens": 4262,
+      "error": ""
+    },
+    {
+      "issue_id": "#67969",
+      "title": "PERF: avoid temporary allocations in multi-block DataFrame axis=1 redu",
+      "predicted": [
+        "Performance"
+      ],
+      "predicted_raw": [
+        "Performance"
+      ],
+      "gold": [
+        "Performance"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 10161,
+      "error": ""
+    },
+    {
+      "issue_id": "#67967",
+      "title": "PERF: avoid redundant allocations in StringArray duplicated and value_",
+      "predicted": [
+        "Performance"
+      ],
+      "predicted_raw": [
+        "Performance"
+      ],
+      "gold": [
+        "Performance"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 10049,
+      "error": ""
+    },
+    {
+      "issue_id": "#67949",
+      "title": "BUG: pd.to_numeric with errors=\"coerce\" fails to produce actual NA val",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 15453,
+      "error": ""
+    },
+    {
+      "issue_id": "#67759",
+      "title": "BUG: `pd.merge` gives `float`s instead of integer extensions",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9575,
+      "error": ""
+    },
+    {
+      "issue_id": "#67755",
+      "title": "BUG: DataFrame.plot.bar raises \"Must supply freq for datetime value\" w",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9658,
+      "error": ""
+    },
+    {
+      "issue_id": "#67754",
+      "title": "BUG: IntervalDtype.__from_arrow__ ignores the struct-level validity bi",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 10295,
+      "error": ""
+    },
+    {
+      "issue_id": "#67753",
+      "title": "BUG: IntervalArray.__arrow_array__ rejects ExtensionDtype subtypes, an",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 10978,
+      "error": ""
+    },
+    {
+      "issue_id": "#67751",
+      "title": "DOC: Opening a Pull Request Instructions Incorrect",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 0,
+      "tokens": 4131,
+      "error": ""
+    },
+    {
+      "issue_id": "#67728",
+      "title": "ENH: Add DataFrame.headtail() to show first and last N rows together",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9626,
+      "error": ""
+    },
+    {
+      "issue_id": "#67727",
+      "title": "BUG: barcharts grouped in subplots behave incorrectly with stacked=Fal",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9455,
+      "error": ""
+    },
+    {
+      "issue_id": "#67726",
+      "title": "BUG: IndexError with certain subplot order in stacked barchart",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9809,
+      "error": ""
+    },
+    {
+      "issue_id": "#67470",
+      "title": "ENH: include cell location in ExcelWriter warning for values exceeding",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 10125,
+      "error": ""
+    },
+    {
+      "issue_id": "#67375",
+      "title": "BUG: read_csv with usecols raises IndexError in low-memory mixed-dtype",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9761,
+      "error": ""
+    },
+    {
+      "issue_id": "#67066",
+      "title": "BUG: zoneinfo transition times causes incorrect localization of some T",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9731,
+      "error": ""
+    },
+    {
+      "issue_id": "#67065",
+      "title": "BUG: HDFStore.select with where=\"cat == None\" returns empty DataFrame ",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9479,
+      "error": ""
+    },
+    {
+      "issue_id": "#67064",
+      "title": "DOC: user guide SQL section lacks PostgreSQL (psycopg 3) recipes",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 14986,
+      "error": ""
+    },
+    {
+      "issue_id": "#67055",
+      "title": "BUG: Pandas 3: RangeIndex values can be modified from the outside",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9907,
+      "error": ""
+    },
+    {
+      "issue_id": "#67040",
+      "title": "BUG: Issues with stacked/grouped bars in subplot charts",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 9387,
+      "error": ""
+    },
+    {
+      "issue_id": "#67024",
+      "title": "BUG: `Series.str.extract` with `ArrowDtype` raises on unnamed capture ",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9813,
+      "error": ""
+    },
+    {
+      "issue_id": "#67023",
+      "title": "BUG: Series.corr returns a finite correlation for exactly constant Ser",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Duplicate Report"
+      ],
+      "steps": 2,
+      "tokens": 14604,
+      "error": ""
+    },
+    {
+      "issue_id": "#67022",
+      "title": "BUG: Series.std returns a non-zero value for an exactly constant float",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4904,
+      "error": ""
+    },
+    {
+      "issue_id": "#67018",
+      "title": "DOC: Pluralise word in 'axis' parameter explanation for dropna() funct",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9543,
+      "error": ""
+    },
+    {
+      "issue_id": "#67012",
+      "title": "DOC, API: `read_*` methods alignment (and `to_*`)",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 7.2,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 2,
+      "tokens": 15411,
+      "error": ""
+    },
+    {
+      "issue_id": "#67010",
+      "title": "BUG: read_csv with engine=\"pyarrow\" and usecols orders columns as give",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9578,
+      "error": ""
+    },
+    {
+      "issue_id": "#67008",
+      "title": "BUG: read_csv with engine=\"pyarrow\", header=None and usecols relabels ",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 15537,
+      "error": ""
+    },
+    {
+      "issue_id": "#67005",
+      "title": "BUG: read_csv with integer `names` treats integer `dtype` keys as both",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 0,
+      "tokens": 4428,
+      "error": ""
+    },
+    {
+      "issue_id": "#66966",
+      "title": "ENH: Allow assign() lambdas to optionally receive the target column as",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 1,
+      "tokens": 9659,
+      "error": ""
+    },
+    {
+      "issue_id": "#66893",
+      "title": "BUG: `groupby(...).indices` / `get_group()` return the wrong group wit",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9525,
+      "error": ""
+    },
+    {
+      "issue_id": "#66877",
+      "title": "BUG: rollforward/rollback accept date but their type hints reject it",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Discussion"
+      ],
+      "steps": 2,
+      "tokens": 15197,
+      "error": ""
+    },
+    {
+      "issue_id": "#66850",
+      "title": "ENH: add `DatetimeIndexResampler`, `PeriodIndexResampler` and `Timedel",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 14707,
+      "error": ""
+    },
+    {
+      "issue_id": "#66834",
+      "title": "BUG: coerce empty-string IEEE NaN to null for pyarrow floats",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 14841,
+      "error": ""
+    },
+    {
+      "issue_id": "#66807",
+      "title": "ENH: Disclose offending values in `IntervalArray._validate`",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4165,
+      "error": ""
+    },
+    {
+      "issue_id": "#66774",
+      "title": "BUG: test_duplicated_hashtable_impl generates identical codes for ever",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug",
+        "Testing"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 2,
+      "tokens": 16155,
+      "error": ""
+    },
+    {
+      "issue_id": "#66764",
+      "title": "DOC:  visibility issues in dark mode for some of the content",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 9452,
+      "error": ""
+    },
+    {
+      "issue_id": "#66745",
+      "title": "ENH: Add pd.read_txt(...)",
+      "predicted": [
+        "Enhancement"
+      ],
+      "predicted_raw": [
+        "Enhancement"
+      ],
+      "gold": [
+        "Enhancement"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 9528,
+      "error": ""
+    },
+    {
+      "issue_id": "#66742",
+      "title": "DOC: Update `DataFrame` and `Index` docs to say that `dicts` are accep",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9745,
+      "error": ""
+    },
+    {
+      "issue_id": "#66735",
+      "title": "BLD: build failures of xsimd code on linux",
+      "predicted": [
+        "Build"
+      ],
+      "predicted_raw": [
+        "Build"
+      ],
+      "gold": [
+        "Build"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9919,
+      "error": ""
+    },
+    {
+      "issue_id": "#66725",
+      "title": "DOC: propagate #64647 for deprecating `DatetimeIndex`/`TimedeltaIndex`",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 9337,
+      "error": ""
+    },
+    {
+      "issue_id": "#66724",
+      "title": "DOC: propagate #66666 for deprecating `select_dtypes` non-standard `da",
+      "predicted": [
+        "Docs"
+      ],
+      "predicted_raw": [
+        "Docs"
+      ],
+      "gold": [
+        "Docs"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [
+        "Needs Triage"
+      ],
+      "steps": 1,
+      "tokens": 9699,
+      "error": ""
+    },
+    {
+      "issue_id": "#66709",
+      "title": "BUG: to_json(date_format=\"epoch\") ignores date_unit for datetime-likes",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4350,
+      "error": ""
+    },
+    {
+      "issue_id": "#66703",
+      "title": "BUG: boolean-mask operations on a null-dtype ArrowDtype column abort t",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 10159,
+      "error": ""
+    },
+    {
+      "issue_id": "#66697",
+      "title": "BUG: tz_localize with a timedelta `nonexistent` silently wraps int64 w",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 0,
+      "tokens": 4426,
+      "error": ""
+    },
+    {
+      "issue_id": "#66688",
+      "title": "API: astype to CategoricalDtype matches by lookup instead of casting, ",
+      "predicted": [
+        "Bug"
+      ],
+      "predicted_raw": [
+        "Bug"
+      ],
+      "gold": [
+        "Bug"
+      ],
+      "hit": true,
+      "exact": true,
+      "lag_days": 0.0,
+      "state_labels": [],
+      "steps": 1,
+      "tokens": 10139,
+      "error": ""
+    }
+  ]
+}

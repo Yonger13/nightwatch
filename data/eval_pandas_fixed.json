@@ -1,0 +1,1672 @@
+{
+  "meta": {
+    "dataset_source": "github:real_pandas",
+    "dataset_version": "pandas-real-v1",
+    "n_issues": 79,
+    "use_subset": "holdout",
+    "model": "OpenAICompatLLM",
+    "model_names": {
+      "small": "qwen3.8-flash",
+      "medium": "qwen3.8-flash",
+      "strong": "qwen3.8-flash"
+    },
+    "prompt_variant": "tuned",
+    "thinking_policy": {
+      "agent_step": true,
+      "memory_resolve": true,
+      "memory_extract": false,
+      "memory_score": false,
+      "eval_judge": false
+    },
+    "runs_per_sample": 1,
+    "warning": ""
+  },
+  "overall": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "per_stratum": {
+    "API Design": {
+      "样本量": 1,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 3,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "Bug": {
+      "样本量": 42,
+      "中位F1": 1.0,
+      "最低F1": 0.0,
+      "中位步数": 2.0,
+      "提示": ""
+    },
+    "Build": {
+      "样本量": 3,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 2,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "CI": {
+      "样本量": 1,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 2,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "Deprecate": {
+      "样本量": 2,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 2.0,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "Docs": {
+      "样本量": 13,
+      "中位F1": 1.0,
+      "最低F1": 0.0,
+      "中位步数": 2,
+      "提示": ""
+    },
+    "Enhancement": {
+      "样本量": 6,
+      "中位F1": 1.0,
+      "最低F1": 0.6667,
+      "中位步数": 2.5,
+      "提示": ""
+    },
+    "Performance": {
+      "样本量": 5,
+      "中位F1": 1.0,
+      "最低F1": 1.0,
+      "中位步数": 2,
+      "提示": ""
+    },
+    "Regression": {
+      "样本量": 2,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 2.0,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "Testing": {
+      "样本量": 1,
+      "中位F1": 0.6667,
+      "最低F1": 0.6667,
+      "中位步数": 3,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "Usage Question": {
+      "样本量": 1,
+      "中位F1": 1.0,
+      "最低F1": 1.0,
+      "中位步数": 2,
+      "提示": "样本量偏小，指标仅供方向参考"
+    },
+    "unlabeled": {
+      "样本量": 2,
+      "中位F1": 0.0,
+      "最低F1": 0.0,
+      "中位步数": 2.0,
+      "提示": "样本量偏小，指标仅供方向参考"
+    }
+  },
+  "duplicate_detection": {
+    "tp": 0,
+    "fp": 11,
+    "fn": 0,
+    "tn": 68,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "样本量": 79,
+    "confidence_interval_note": "样本量 79，F1 的 95% 置信区间约为 ±0.11；样本量偏小时该指标不宜下强结论"
+  },
+  "reliability": {
+    "自助解决率": 0.9367,
+    "转人工率": 0.0127,
+    "未收敛率": 0.0,
+    "误诊率": 0.0506,
+    "中位步数": 2,
+    "P95步数": 3.0,
+    "P95时延ms": 73232.3,
+    "样本量": 79,
+    "误诊判定依据": "预测标签与维护者实际打的标签无交集"
+  },
+  "memory_quality": {
+    "总召回次数": 361,
+    "实际使用次数": 0,
+    "记忆命中率": 0.0,
+    "无效召回率": 1.0,
+    "平均召回条数": 4.57,
+    "说明": "记忆命中率 = 召回后被实际使用的比例。这个指标低说明召回精度不够（阈值太松或向量质量差），而不是说明记忆没用。"
+  },
+  "memory_effect": {},
+  "rows": [
+    {
+      "issue_id": "#64910",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 16109,
+      "total_tokens": 3240,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65684",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 73171,
+      "total_tokens": 8024,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66039",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement",
+        "Docs"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 44446,
+      "total_tokens": 11078,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65500",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#66552",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 28974,
+      "total_tokens": 7225,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65213",
+      "stratum": "Build",
+      "predicted_labels": [
+        "Regression",
+        "Build"
+      ],
+      "gold_labels": [
+        "Build"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 46090,
+      "total_tokens": 8000,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64825",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 36403,
+      "total_tokens": 7882,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65100",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 25943,
+      "total_tokens": 7498,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66391",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement",
+        "Error Reporting"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 29190,
+      "total_tokens": 7544,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#67726",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Visualization"
+      ],
+      "gold_labels": [
+        "Bug",
+        "Visualization"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 22583,
+      "total_tokens": 7506,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65810",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 11353,
+      "total_tokens": 3349,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66579",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 26845,
+      "total_tokens": 7534,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66761",
+      "stratum": "Testing",
+      "predicted_labels": [
+        "Bug",
+        "Testing"
+      ],
+      "gold_labels": [
+        "Testing"
+      ],
+      "predicted_duplicate_of": "#69014",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 64395,
+      "total_tokens": 13632,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66356",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 73784,
+      "total_tokens": 10286,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#69014",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Testing"
+      ],
+      "gold_labels": [
+        "Bug",
+        "Testing"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 29748,
+      "total_tokens": 8010,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66100",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#66310",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 92918,
+      "total_tokens": 16474,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65220",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30291,
+      "total_tokens": 8550,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64383",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#66588",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 22231,
+      "total_tokens": 8345,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66197",
+      "stratum": "Performance",
+      "predicted_labels": [
+        "Performance"
+      ],
+      "gold_labels": [
+        "Performance"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 33184,
+      "total_tokens": 8752,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65458",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 49556,
+      "total_tokens": 13372,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65065",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 37675,
+      "total_tokens": 8792,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66552",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 15723,
+      "total_tokens": 3777,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64657",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Regression"
+      ],
+      "gold_labels": [
+        "Bug",
+        "Regression"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 67840,
+      "total_tokens": 10301,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66241",
+      "stratum": "CI",
+      "predicted_labels": [
+        "Enhancement",
+        "CI"
+      ],
+      "gold_labels": [
+        "CI"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 31898,
+      "total_tokens": 8482,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65872",
+      "stratum": "unlabeled",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [],
+      "predicted_duplicate_of": "#64419",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 39772,
+      "total_tokens": 9139,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#69037",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug",
+        "Regression"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 26122,
+      "total_tokens": 8306,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 0.5
+    },
+    {
+      "issue_id": "#64394",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 13484,
+      "total_tokens": 3637,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64844",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Docs",
+        "Usage Question"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "misdiagnosed",
+      "n_steps": 2,
+      "elapsed_ms": 45139,
+      "total_tokens": 9343,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#64968",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#65220",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 25547,
+      "total_tokens": 8349,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66257",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 23242,
+      "total_tokens": 8087,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64395",
+      "stratum": "Deprecate",
+      "predicted_labels": [
+        "Deprecate",
+        "API Design"
+      ],
+      "gold_labels": [
+        "Deprecate"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 50947,
+      "total_tokens": 9765,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65914",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Deprecate"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 100089,
+      "total_tokens": 16723,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64458",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 25739,
+      "total_tokens": 4571,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64866",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 32342,
+      "total_tokens": 9081,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66261",
+      "stratum": "Performance",
+      "predicted_labels": [
+        "Performance"
+      ],
+      "gold_labels": [
+        "Performance"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 33064,
+      "total_tokens": 8457,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64419",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": "#64426",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 37907,
+      "total_tokens": 8934,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64426",
+      "stratum": "unlabeled",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [],
+      "predicted_duplicate_of": "#64419",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 21857,
+      "total_tokens": 7854,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#64941",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 29369,
+      "total_tokens": 8108,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64635",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 62552,
+      "total_tokens": 10109,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66470",
+      "stratum": "API Design",
+      "predicted_labels": [
+        "Enhancement",
+        "API Design"
+      ],
+      "gold_labels": [
+        "API Design"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 48499,
+      "total_tokens": 13942,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64650",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 32848,
+      "total_tokens": 12346,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65408",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 39311,
+      "total_tokens": 9150,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66373",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#66451",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 24559,
+      "total_tokens": 8201,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66348",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 25144,
+      "total_tokens": 8008,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66834",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30497,
+      "total_tokens": 8476,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65469",
+      "stratum": "Regression",
+      "predicted_labels": [
+        "Bug",
+        "Regression"
+      ],
+      "gold_labels": [
+        "Regression"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 28559,
+      "total_tokens": 8371,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66268",
+      "stratum": "Performance",
+      "predicted_labels": [
+        "Performance"
+      ],
+      "gold_labels": [
+        "Performance"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 56124,
+      "total_tokens": 14143,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66285",
+      "stratum": "Build",
+      "predicted_labels": [
+        "Build",
+        "Warnings"
+      ],
+      "gold_labels": [
+        "Build"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 33453,
+      "total_tokens": 8200,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66518",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 15673,
+      "total_tokens": 4356,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65068",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 13086,
+      "total_tokens": 3668,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66349",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 20608,
+      "total_tokens": 7699,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65003",
+      "stratum": "Performance",
+      "predicted_labels": [
+        "Performance"
+      ],
+      "gold_labels": [
+        "Performance"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 29809,
+      "total_tokens": 8134,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66104",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30405,
+      "total_tokens": 8203,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66451",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "misdiagnosed",
+      "n_steps": 1,
+      "elapsed_ms": 25050,
+      "total_tokens": 4043,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#65446",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Docs"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 43166,
+      "total_tokens": 9369,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#67728",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 46840,
+      "total_tokens": 13566,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66709",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 36811,
+      "total_tokens": 9518,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64428",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30451,
+      "total_tokens": 8477,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65710",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30353,
+      "total_tokens": 8573,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65987",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 35228,
+      "total_tokens": 12610,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#69006",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 19818,
+      "total_tokens": 7948,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64460",
+      "stratum": "Deprecate",
+      "predicted_labels": [
+        "Deprecate",
+        "API Design"
+      ],
+      "gold_labels": [
+        "Deprecate"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 39085,
+      "total_tokens": 9289,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66588",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 35149,
+      "total_tokens": 8565,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66542",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Error Reporting"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 51744,
+      "total_tokens": 10225,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66310",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Enhancement"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 26587,
+      "total_tokens": 8208,
+      "strict_f1": 0.6667,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64663",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 3,
+      "elapsed_ms": 43607,
+      "total_tokens": 13165,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66735",
+      "stratum": "Build",
+      "predicted_labels": [
+        "Bug",
+        "Build"
+      ],
+      "gold_labels": [
+        "Build"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 44311,
+      "total_tokens": 5951,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#67022",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 25491,
+      "total_tokens": 8233,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66012",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 27094,
+      "total_tokens": 8188,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65676",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Enhancement",
+        "API Design"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": "#66012",
+      "gold_duplicate_of": null,
+      "outcome": "misdiagnosed",
+      "n_steps": 3,
+      "elapsed_ms": 118177,
+      "total_tokens": 18070,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#64633",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 33886,
+      "total_tokens": 8205,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64713",
+      "stratum": "Bug",
+      "predicted_labels": [],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "escalated",
+      "n_steps": 1,
+      "elapsed_ms": 28381,
+      "total_tokens": 4467,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#65837",
+      "stratum": "Performance",
+      "predicted_labels": [
+        "Performance",
+        "Regression"
+      ],
+      "gold_labels": [
+        "Performance",
+        "Regression"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 22747,
+      "total_tokens": 7816,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#65118",
+      "stratum": "Regression",
+      "predicted_labels": [
+        "Bug",
+        "Regression"
+      ],
+      "gold_labels": [
+        "Regression"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30241,
+      "total_tokens": 8675,
+      "strict_f1": 0.6667,
+      "top1": 0.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64744",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Usage Question"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "misdiagnosed",
+      "n_steps": 2,
+      "elapsed_ms": 39567,
+      "total_tokens": 8594,
+      "strict_f1": 0.0,
+      "top1": 0.0,
+      "hit2": 0.0
+    },
+    {
+      "issue_id": "#66434",
+      "stratum": "Docs",
+      "predicted_labels": [
+        "Docs"
+      ],
+      "gold_labels": [
+        "Docs"
+      ],
+      "predicted_duplicate_of": "#64633",
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 21818,
+      "total_tokens": 7890,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#68962",
+      "stratum": "Enhancement",
+      "predicted_labels": [
+        "Enhancement"
+      ],
+      "gold_labels": [
+        "Enhancement"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 30182,
+      "total_tokens": 8390,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64747",
+      "stratum": "Usage Question",
+      "predicted_labels": [
+        "Usage Question"
+      ],
+      "gold_labels": [
+        "Usage Question"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 24131,
+      "total_tokens": 8112,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#64702",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug"
+      ],
+      "gold_labels": [
+        "Bug"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 2,
+      "elapsed_ms": 48951,
+      "total_tokens": 9152,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    },
+    {
+      "issue_id": "#66138",
+      "stratum": "Bug",
+      "predicted_labels": [
+        "Bug",
+        "Error Reporting"
+      ],
+      "gold_labels": [
+        "Bug",
+        "Error Reporting"
+      ],
+      "predicted_duplicate_of": null,
+      "gold_duplicate_of": null,
+      "outcome": "resolved",
+      "n_steps": 1,
+      "elapsed_ms": 24450,
+      "total_tokens": 4125,
+      "strict_f1": 1.0,
+      "top1": 1.0,
+      "hit2": 1.0
+    }
+  ]
+}
