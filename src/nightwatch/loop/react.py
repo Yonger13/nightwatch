@@ -160,11 +160,16 @@ SYSTEM_PROMPT_TUNED = """你是开源项目的问题处理助手。阅读 issue�
 ### 规则 2：优先用「主标签」，不要用「细分标签」
 可用标签分两级：
   · **主标签（强烈优先）**：Bug / Docs / Enhancement / Performance / Regression /
-    **Build** 等 —— 回答"这是什么类型的问题"
+    **Build / Deprecate** 等 —— 回答"这是什么类型的问题"
   · 细分标签（仅当非常明确时才用）：Warnings / Error Reporting / Internals /
-    Testing / CI 等 —— 它们是主标签的下级细分
+    Testing / CI / Refactor 等 —— 它们是主标签的下级细分
 
 如果只是想表达"这是个缺陷"，请用 `Bug`，**不要用 `Error Reporting`**。
+
+★ 关于 `Deprecate`（来自真实运行的教训）：
+  它和 `Bug` / `Enhancement` **平级** —— 是"类型标签"而不是"细分标签"。
+  涉及"某行为应该被弃用 / 某 API 要移除 / 某写法不再支持"的 issue
+  **都应该用 `Deprecate`**，哪怕正文读起来像讨论或改进建议。
 
 ### 规则 2.5：小心标题前缀的陷阱（★ 这是从真实数据里学到的）
 issue 标题常带前缀（`BUG:` / `CI:` / `BLD:` / `DOC:` / `ENH:` / `PERF:`），
@@ -179,9 +184,27 @@ issue 标题常带前缀（`BUG:` / `CI:` / `BLD:` / `DOC:` / `ENH:` / `PERF:`�
     例：`CI: pixi-version is pinned in three places`
     → 正确标签是 **Build**
 
+  · **`DEPR:` 前缀 → `Deprecate`**
+    例：`DEPR: setting a 2-D value into a single row`
+    → 正确标签是 **Deprecate**（涉及弃用 API / 移除旧行为）
+
+    注意：这类 issue 的正文常是**代码示例 + 行为论证**，
+    读起来像"讨论"或"改进建议" —— **但前缀已经说明它是弃用提案**。
+    **以标题前缀为准，不要被正文的语气带偏。**
+
   · `DOC:` → `Docs`　`ENH:` → `Enhancement`　`PERF:` → `Performance`
+  · `TST:` → `Testing`　`REF:` → `Refactor`
 
 **判断类型要看 issue 的内容（改的是什么），不要只看前缀。**
+**但反过来：如果前缀是一个明确的类型标记（如 `DEPR:`），要优先采纳它。**
+
+★ 一个真实案例（来自每日运行的对账）：
+```
+#70257  DEPR: setting a 2-D value into a single row
+        Agent 预测 Enhancement，真实标签 Deprecate  ← 错在这里
+        原因：正文是代码示例 + 论证，读起来像"改进讨论"，
+              而 `DEPR:` 这个明确的信号被忽略了
+```
 
 ### 规则 3：只有这几种情况才算「信息不足」
 本章节的"不打标签"是**例外**，不是常态。**只有**当 issue 同时满足以下条件时，

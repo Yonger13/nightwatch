@@ -1765,6 +1765,44 @@ class TestProspectiveValidation(unittest.TestCase):
         # 组合形式也要能归
         self.assertEqual(normalize_pred(["CI", "config", "pixi"]), ["Build"])
 
+    def test_标题前缀的缩写都要能映射(self):
+        """★ 模型会**照抄标题里的前缀**当标签名 —— 所以映射表要覆盖所有缩写。
+
+        pandas 的标准前缀：BUG: / DOC: / ENH: / PERF: / CI: / BLD: / DEPR: /
+        TST: / REF:
+
+        这里漏过两次（同类问题）：
+          · 第一次漏 `CI` / `BLD`（Build 类全错）
+          · 第二次漏 `DEPR`（每日运行对账发现的：#70257 真实标签 Deprecate）
+        **每次都是"真实运行 → 对账"才发现的，不是靠想。**
+
+        ★ 为什么这是**评测侧**的职责？
+          因为模型输出 "DEPR" 是**合理的**（它照抄标题），
+          而评测如果认不出来，就会把它算作"未给出预测" ——
+          **明明是"归一化失败"，却记成了"模型没回答"**。
+          责任分错了，修的方向就错了。
+        """
+        import sys
+        from pathlib import Path as _P
+        sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "scripts"))
+        from eval_prospective import normalize_pred, to_coarse
+
+        cases = [
+            ("DEPR", "Deprecate"), ("depr", "Deprecate"),
+            ("Deprecate", "Deprecate"), ("deprecation", "Deprecate"),
+            ("TST", "Testing"), ("REF", "Refactor"),
+            # 之前修的
+            ("CI", "Build"), ("BLD", "Build"),
+        ]
+        for raw, expect in cases:
+            self.assertEqual(to_coarse(raw), expect, f"{raw} 应映射到 {expect}")
+
+        # 组合形式（照抄标题前缀时的典型输出）
+        self.assertEqual(
+            normalize_pred(["DEPR", "Indexing", "API Design"]),
+            ["Deprecate"])
+        self.assertEqual(normalize_pred(["TST", "CI"]), ["Testing", "Build"])
+
     def test_评测类脚本显式指定prompt_variant(self):
         """★ 评测脚本必须显式传 prompt_variant，不能依赖默认值。
 

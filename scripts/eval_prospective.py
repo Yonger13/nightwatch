@@ -241,8 +241,23 @@ _COARSE_MAP = {
     "ci": "Build",
     "bld": "Build",
     "regression": "Regression",
+    # ★ `depr` 是 pandas 标题里的标准前缀（`DEPR:` = deprecation 提案）
+    #
+    # 和 `ci` / `bld` 是**同一类遗漏** —— 第一版只写了完整的 `deprecate`，
+    # 没写缩写 `depr`。
+    #
+    # 后果：如果模型输出 `['DEPR', 'Indexing']`，
+    # `to_coarse('DEPR')` 返回 None → 整个列表归一化成空 →
+    # **被算作"未给出预测"，而真相是"给了但归一化失败"**。
+    #
+    # 「评测侧的缩写映射要覆盖**模型可能输出的所有写法**」——
+    # 模型会照抄标题里的前缀，所以标题里有的缩写（CI/BLD/DEPR/TST/REF）
+    # 都要在映射表里。**这是评测的职责，不是模型的。**
+    "depr": "Deprecate",
     "deprecate": "Deprecate",
     "deprecation": "Deprecate",
+    "tst": "Testing",
+    "ref": "Refactor",
 }
 
 # 这些**不是类型标签**，是状态/流程标签 —— 出现在预测里说明"Agent 没给出类型判断"
