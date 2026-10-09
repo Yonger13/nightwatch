@@ -85,10 +85,36 @@ jobs:
 
       - name: 跑一轮分诊
         env:
+          # --- 密钥（从仓库 Secret 读，不会出现在日志里）---
           NW_GITHUB_TOKEN: ${{ secrets.NW_GITHUB_TOKEN }}
-          # 模型配置（按你的服务商改）
           NW_LLM_API_KEY: ${{ secrets.NW_LLM_API_KEY }}
           NW_LLM_BASE_URL: ${{ secrets.NW_LLM_BASE_URL }}
+
+          # --- 模型名（★ 不是密钥，直接写在这里）---
+          #
+          # ★★ 为什么这三个必须显式写，不能省略？
+          #
+          #   ① **代码里的默认值和实际用的不一样**
+          #      代码默认：qwen-turbo / qwen-plus / qwen-max
+          #      实际用： qwen3.8-flash（和本地 .env 保持一致）
+          #      不写的话，Actions 上会**悄悄换一个模型** ——
+          #      而"换了模型"这件事在日志里看不出来，只会表现为"准确率变了"。
+          #
+          #   ② **"存在但为空"和"不存在"在 os.getenv 里是两回事**
+          #      `os.getenv("NW_MODEL_STRONG", "qwen-max")`
+          #        · key 不存在   → 返回 "qwen-max"  ✓
+          #        · key 存在但空 → 返回 ""          ✗ 会把空字符串当模型名
+          #
+          #      所以**不能**把模型名写成"从 Secret 读"的形式 ——
+          #      Secret 没配时它会传空字符串，让代码拿到 "" 而崩溃。
+          #
+          #      **要么不写这个变量（用代码默认值），要么写明确的值** ——
+          #      不要写"可能为空"的表达式。这是个很容易踩的坑。
+          #
+          # 想换模型：改这里就行（不是密钥，不需要配 Secret）。
+          NW_MODEL_STRONG: qwen3.8-flash
+          NW_MODEL_MEDIUM: qwen3.8-flash
+          NW_MODEL_SMALL: qwen3.8-flash
         run: |
           python scripts/daily_triage.py --once --limit 20
 
