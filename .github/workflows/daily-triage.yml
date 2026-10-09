@@ -75,7 +75,26 @@ jobs:
       - name: 恢复状态库
         uses: actions/cache/restore@v4
         with:
-          path: data/daily_triage.db
+          # ★★ 两个库都要缓存 —— 这里踩过一个"会静默失效"的坑：
+          #
+          #   第一版只缓存了 daily_triage.db（预测状态），
+          #   但**结果反馈闭环把误诊计数存在 memory.db 里**（另一个库）——
+          #   不缓存它的话，每天容器重建 → memory.db 从零开始 →
+          #   "一条记忆错了 2 次"这个判断**永远成立不了** →
+          #   反馈闭环静默失效，而日志里看不出任何异常。
+          #
+          #   **加了新状态就要更新缓存清单** —— 这类遗漏不会报错，
+          #   只会让某个功能"看起来在跑，实际从没生效"。
+          #
+          #   SQLite 的 -wal / -shm 副文件也要带上 ——
+          #   只恢复主文件可能丢最近的写入（WAL 模式下数据可能还在 wal 里）。
+          path: |
+            data/daily_triage.db
+            data/daily_triage.db-wal
+            data/daily_triage.db-shm
+            data/memory.db
+            data/memory.db-wal
+            data/memory.db-shm
           # ★ key 里带 run_id，保证每次都能"新建"一个 key；
           #   restore-keys 用前缀匹配拿到上一次的 cache。
           #   这是绕开"cache 不可变"的标准做法。
@@ -120,13 +139,25 @@ jobs:
 
       - name: 输出状态报告
         if: always()
-        run: python scripts/daily_triage.py --status | tee status.txt
+        run: |
+          python scripts/daily_triage.py --status | tee status.txt
+          # 记忆时效性：看看有没有该复核的记忆（反馈闭环的产出）
+          if [ -f data/memory.db ]; then
+            python scripts/review_stale.py --db data/memory.db --stats 2>&1 | tee -a status.txt || true
+          fi
 
       - name: 保存状态库
         if: always()             # ★ 即使这轮失败也要保存 —— 否则已预测的记录全丢
         uses: actions/cache/save@v4
         with:
-          path: data/daily_triage.db
+          # 和 restore 的清单必须一致（两个库 + 各自的 wal/shm）
+          path: |
+            data/daily_triage.db
+            data/daily_triage.db-wal
+            data/daily_triage.db-shm
+            data/memory.db
+            data/memory.db-wal
+            data/memory.db-shm
           key: triage-db-${{ github.run_id }}
 
       - name: 把状态报告存成 artifact
