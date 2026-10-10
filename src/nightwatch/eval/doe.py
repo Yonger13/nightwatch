@@ -69,6 +69,15 @@ import itertools
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 
+# ★ 多重比较提示复用 `significance` 里的实现，**不在这里重写一份**。
+#   （本项目已经四次踩到"同一件事两份实现"，所以这类通用判断只留一处。）
+#   该模块对 config 的导入是容错的，缺 config 也能用。
+try:
+    from nightwatch.eval.significance import bonferroni_note
+except ImportError:                     # pragma: no cover
+    def bonferroni_note(k: int, alpha: float = 0.05) -> str:  # type: ignore
+        return f"比较了 {k} 个候选，未做多重比较校正"
+
 
 @dataclass
 class Factor:
@@ -328,4 +337,25 @@ def recommend(design: Design, results: dict[str, float],
         "性价比最高": best_ratio,
         "达标里最省": cheapest_qualified,
         "帕累托前沿": pareto_frontier(pts),
+        # ================================================================
+        # ★★ 多重比较提示 —— 为什么这个键必须存在 ★★
+        # ================================================================
+        # `recommend()` 的动作是"**在 k 个配置里挑最优**"，
+        # 而挑这个动作本身就会引入偏差：
+        #   · 比较次数越多，"碰巧看起来最好"的那一个越容易出现
+        #   · 所以选出来的"最优配置"，效果估计**天然偏高**
+        #
+        # 而这份报告接下来会被当成"结论"去引用（"实测最优配置是 X"）——
+        # 如果不把这件事写进去，读者会把它当成一个无偏的估计。
+        #
+        # 注意措辞的分寸：**正交实验（如 L9）的定位本来就是"筛选"**，
+        # 不是"验证"。9 次运行不可能同时精确估计 4 个因子的主效应，
+        # 它的作用是"快速排除明显差的组合"。
+        # 把结论定位成筛选性、把复验写成下一步 —— 这才是符合事实的描述。
+        "multiple_comparison_note": bonferroni_note(len(pts)),
+        "note_on_doe": (
+            "正交实验（L9 等）的**定位是筛选性**，不是验证性："
+            "自由度有限，主效应之间可能存在混杂，"
+            "不能据此宣称某个因子的效应量。"
+            "挑出来的配置必须在**独立数据**上复验后才能对外引用。"),
     }

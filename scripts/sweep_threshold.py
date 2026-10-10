@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import re  # noqa: E402
 
 from nightwatch.eval.dataset import build_synthetic_dataset      # noqa: E402
+from nightwatch.eval.significance import bonferroni_note         # noqa: E402
 from nightwatch.memory.store import HashEmbedding, cosine         # noqa: E402
 
 
@@ -131,8 +132,10 @@ def main() -> None:
     p("-" * 78)
 
     best = (0.0, None)
+    n_tried = 0                      # 实际比较了几个阈值（用于多重比较提示）
     for t10 in range(10, 96, 5):
         thr = t10 / 100
+        n_tried += 1
         tp = fp = fn = tn = 0
         for _, _, sim, is_dup, _ in rows:
             pred_dup = sim >= thr
@@ -162,6 +165,24 @@ def main() -> None:
         p("  漏报（FN）：维护者重复处理一遍，浪费一点时间")
         p("  误报（FP）：新问题被标记为已解决，**永远不会被处理**")
         p("误报严重得多，所以实际取值应该**比 F1 最优点更偏保守（更高）**。")
+
+        # ================================================================
+        # ★★ 多重比较提示（选择偏差）★★
+        # ================================================================
+        # 上面那个"F1 最优"是**在 n_tried 个阈值里挑出来的最大值** ——
+        # 挑最大值这个动作本身就会让结果偏高：
+        # 哪怕所有阈值的真实表现完全一样，18 次里也总有一个碰巧最高。
+        #
+        # 所以报告里必须写清楚两件事：
+        #   ① 单次比较的显著性门槛要按比较次数校正（Bonferroni）
+        #   ② **校正还不够** —— 它只让步门槛更严，不消除"挑出来的那个偏高"
+        #      这个事实。真正要做的是把最优阈值拿到**独立数据**上复验。
+        p()
+        for line in bonferroni_note(n_tried).split("\n"):
+            p(line)
+        p()
+        p("  本脚本的适用场景正是「**筛选候选**」—— 它的产出是一个待验证的")
+        p("  候选阈值，而不是可以直接上线的配置。")
     p()
     p("=" * 78)
     p("⚠ 本结果基于合成数据 + HashEmbedding（伪向量）。")
