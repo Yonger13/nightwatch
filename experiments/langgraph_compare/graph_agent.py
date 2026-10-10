@@ -34,6 +34,40 @@ LangGraph 把它们分别翻译成：
 
 **这不是框架找麻烦**，而是它提供的能力（中断续跑、并行分支）
 对状态提出了要求。**想要那个能力，就得接受这个约束。**
+
+================================================================================
+★★ 第三个坑（2026-10-11 修）：节点拿不到外面的 store —— 生命周期被拆散了 ★★
+================================================================================
+第一版里 `recall_node` / `think_node` **各自调用 `setup_tools()`**，
+于是每跑一轮回边就重建一次 MemoryStore + 工具集。
+
+为什么会写成那样？因为**节点是独立可调用的单元**：
+它不能假设"外面有个共享的 store" —— 那个假设会让节点无法单独测试，
+也就丢掉了框架给的好处之一（④ 节点可单独调试）。
+
+代价是**资源的生命周期不再集中**：手写版 `store` 建一次、`finally` 关一次；
+框架版建 N 次，想关掉就得额外找地方收口。
+第一版我用了一个**模块级全局收集器** `_OPEN_STORES` 来绕过 —— 那是绕过，不是解决：
+  · 它**不线程安全**（两个线程同时跑会互相污染收集器）
+  · 它引入了节点和"运行器"之间的**隐式耦合**（靠全局变量通信）
+  · 生产里这么写会让 QPS 掉得很惨（每轮重建数据库连接）
+
+★★ 正确做法：`config["configurable"]` —— 框架提供的依赖注入通道 ★★
+
+    def recall_node(state, config):          # ← 节点声明第二个参数
+        store = config["configurable"]["store"]   # ← 从 config 里取，不自己建
+
+    app.invoke({...}, {"configurable": {"store": store, ...}})   # ← 运行时注入
+
+**这才是框架的正确用法**，也是本次对照真正该展示的东西：
+框架不是"要么全局变量、要么自己造轮子"，它**自带**依赖注入通道。
+第一版之所以看着"生命周期更麻烦"，是因为我**没用它提供的机制**。
+
+★ 这一条同时改变了 LOC 结论，见 `compare.py` 的 LOC 分解：
+  第一版那 168 行里有相当一部分是**收口补丁**（收集器 + `_track` + 统一关闭），
+  不是"编排声明开销"。**把补丁算进编排开销，会高估框架的声明成本。**
+  本文件用 `# >>> lifecycle` / `# <<< lifecycle` 标出这部分，让 `compare.py`
+  能把两类开销分开算 —— 否则这个数字靠人读代码判断，不可复现。
 """
 
 from __future__ import annotations
@@ -42,13 +76,13 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Annotated, Any, Optional, TypedDict
+from typing import Annotated, Any, TypedDict
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from langgraph.graph import END, START, StateGraph                 # noqa: E402
-from langgraph.graph.message import add_messages                    # noqa: E402
+from langchain_core.runnables import RunnableConfig                 # noqa: E402
 
 from nightwatch.models import Issue                                # noqa: E402
 
@@ -56,6 +90,39 @@ from shared import (                                               # noqa: E402
     MAX_STEPS, build_prompt, make_llm, parse_action, parse_final,
     recall_memory, setup_tools,
 )
+
+
+# =============================================================================
+# ★ 依赖注入通道（本文件唯一的"资源生命周期"代码）
+# =============================================================================
+# >>> lifecycle: begin
+#
+# ★ 为什么这么短？因为**框架自带注入通道**，我们只需要读它。
+#
+#   第一版是"节点各自建 + 模块级收集器兜底"：
+#       _OPEN_STORES = None                      ← 全局变量
+#       def _track(store): _OPEN_STORES.append(store)
+#       节点里：store, tools = setup_tools(); _track(store)
+#       运行器里：created=[]; global _OPEN_STORES; _OPEN_STORES=created
+#                 finally: for s in created: s.close()
+#   —— 那一堆就是**收口补丁**，是"没用框架机制"的代价。
+#
+#   ⚠️ 注意：这里**没有**变成"零成本"。仍然有一层间接：
+#     "这个节点的依赖从哪来"不再是语法上可见的，而是**约定**（key 名要对上）。
+#     手写版靠闭包，语法上就看得见；这里靠 `config["configurable"]["store"]`
+#     这个字符串约定 —— 写错 key 会在**运行时**才报 KeyError，不是静态错误。
+#     这是依赖注入通道的真实代价，必须记下来，不能只说好处。
+
+def _deps(config: RunnableConfig):
+    """从框架的注入通道里取出本次运行共享的组件。
+
+    ★ 用 `[]` 而不是 `.get()`：**缺依赖要立刻炸**。
+      如果用 `.get()` 返回 None，错误会推迟到"调用 store 的某个方法时"，
+      报错点离病因很远。**早失败 > 晚失败。**
+    """
+    ctx = config["configurable"]
+    return ctx["store"], ctx["tools"], ctx["llm"]
+# <<< lifecycle: end
 
 
 def _append(old: list, new: list) -> list:
@@ -83,6 +150,34 @@ def _append(old: list, new: list) -> list:
     return (old or []) + (new or [])
 
 
+def _add_int(old: int, new: int) -> int:
+    """★ 第二个 reducer：**累加**而不是覆盖。
+
+    这个 reducer 是给 `steps_executed` / `tokens` / `tool_calls` 这类
+    **计数器**用的。
+
+    ============================================================
+    为什么这里必须显式写 reducer —— 一个真实踩到的坑
+    ============================================================
+    第一版我把 `tokens` / `tool_calls` 写成普通字段（默认语义 = 覆盖），
+    然后在节点里手动做 `state.get("tokens", 0) + tokens`。
+
+    **看起来对，其实脆弱**：
+      · 一旦某个节点忘了写这个"读取旧值再加"的模板（比如新加的节点），
+        它的返回值会**静默覆盖**掉之前累计的数 —— 不报错，只是数字变小。
+      · 而"忘了写模板"这件事没有任何机制拦你（不像类型错了会报错）。
+
+    **声明 reducer 的价值就在这里**：把"怎么合"从"每个节点各写一遍"
+    变成"在状态定义里声明一次"。**写一次 > 抄十遍。**
+
+    这也正好回应了对照实验的主题：
+    手写版里 `result.tokens += x` 是**每处都要写对**；
+    框架版里 reducer 是**一处声明，全场生效**。
+    前者更直接，后者更不容易漏 —— 各有代价。
+    """
+    return (old or 0) + (new or 0)
+
+
 class GraphState(TypedDict, total=False):
     """图的状态定义。
 
@@ -95,9 +190,17 @@ class GraphState(TypedDict, total=False):
     history: Annotated[list, _append]                 # ★ 只追加 → 需要 reducer
     step: int                                         # 可覆盖 → 普通声明
     final: list                                       # 可覆盖 → 普通声明
-    # 下面两个不是业务状态，是**为了对齐对照指标**额外加的
-    tokens: int
-    tool_calls: int
+    # 下面几个不是业务状态，是**为了对齐对照指标**额外加的
+    #
+    # ★ `steps_executed` 和后两个一样，是**计数器**而不是"当前步号" ——
+    #   为什么不能直接用 `step`？见 `run_graph_agent` 的说明：
+    #   `step` 的语义是"最后写入的步号"，在有回边的情况下
+    #   它恰好等于实际步数（因为每次都 +1）... 但**只在图跑到底时成立**。
+    #   一旦哪天真加了"跳过某步"的分支，两者就会分叉。
+    #   **所以指标用的计数器必须独立声明**，不能搭业务字段的便车。
+    steps_executed: Annotated[int, _add_int]
+    tokens: Annotated[int, _add_int]
+    tool_calls: Annotated[int, _add_int]
     terminated_by: str
 
 
@@ -105,7 +208,7 @@ class GraphState(TypedDict, total=False):
 # 节点（= 手写版循环体里的一个"阶段"）
 # =============================================================================
 
-def recall_node(state: GraphState) -> dict:
+def recall_node(state: GraphState, config: RunnableConfig) -> dict:
     """记忆召回节点。
 
     ★ 在手写版里，这是循环**之前**的两行代码。
@@ -114,22 +217,43 @@ def recall_node(state: GraphState) -> dict:
       **这是框架的一个隐性收益**：强制你把流程拆成有名字的阶段 ——
       而"给阶段起名字"这个动作本身会逼你想清楚每步在干嘛。
       （手写时很容易把三件事塞进一个函数里，因为没人拦你。）
+
+    ★★ 组件从 `config` 注入，**不再自己建** ★★
+      第一版这里是 `store, tools = setup_tools()` —— 每轮重建一次。
+      改注入之后，`store` 的生命周期回到"一次运行一次"，
+      和手写版对齐了 —— **这才是公平对照该有的样子**：
+      两版在"资源怎么管"上不该有差异，否则测出来的耗时差
+      里面混着"组件重建开销"，而那不是编排的开销。
+
+    ★ 顺带一个观察：节点多了第二个参数（`config`）之后，
+      **它的签名就不再是"纯 state → state 更新"了**。
+      手写版的循环体没有这个"额外通道" —— 它直接闭包访问外层变量。
+      **两种方式都能共享资源，区别是"显式约定"和"词法可见"。**
     """
+    store, _tools, _llm = _deps(config)
     issue = state["issue"]
-    # 组件在这里现造（对照实验里不引入复杂的依赖注入）
-    store, tools = setup_tools()
     memory, _ = recall_memory(issue, store)
-    return {"memory": memory, "step": 0, "tokens": 0, "tool_calls": 0}
+    # ★ 返回的是"更新片段"而不是完整状态 —— 这是图的约定。
+    #   计数器字段不写"读取旧值再加"（那样就是手写版的写法了），
+    #   直接返回本节点产生的增量，由 reducer 去累加。
+    return {"memory": memory, "step": 0}
 
 
-def think_node(state: GraphState) -> dict:
+def think_node(state: GraphState, config: RunnableConfig) -> dict:
     """思考节点：拼提示词 → 调模型 → 解析动作。
 
     ★ 这个名字来自 ReAct 的"Thought"。
       在手写版里它就是循环体那 5 行；
       在这里它是一个**可被单独调试的节点**（可以只跑它，看输入输出）。
+
+    ★★ 注意这个节点**每轮回边都会执行** ★★
+      所以第一版"节点内建组件"的写法在这里代价最大：
+      走 3 步的样本会重建 3 次 MemoryStore（含 SQLite 连接 + 4 条记忆的
+      向量化）。改注入后这些开销全部消失 —— 这正是本次重测耗时想分离的东西。
     """
     from dataclasses import dataclass
+
+    store, tools, llm = _deps(config)
 
     # LangGraph 的 state 是 TypedDict，但要塞进 build_prompt，
     # 需要一个带属性的对象 —— 这个"翻译"动作本身就是一个小摩擦点。
@@ -145,9 +269,6 @@ def think_node(state: GraphState) -> dict:
     s = _S(issue=state["issue"], memory=state.get("memory", []),
            history=state.get("history", []), step=state.get("step", 0) + 1)
 
-    store, tools = setup_tools()
-    llm = make_llm(use_mock=True)
-
     messages = build_prompt(s)
     resp = llm.complete(messages, task="agent_step")
     text = resp.text
@@ -157,10 +278,15 @@ def think_node(state: GraphState) -> dict:
 
     if action is None:
         # 模型给了最终答案 → 这个节点把结果写进 final，路由函数据此结束
+        #
+        # ★ 计数器只返回**本节点的增量**（`tokens` / `steps_executed`），
+        #   由 reducer 负责累加。对比手写版里的 `result.tokens += tokens` ——
+        #   那是"每处都要写对"，这里只写增量即可。
         return {
             "step": s.step,
+            "steps_executed": 1,
             "final": parse_final(text),
-            "tokens": state.get("tokens", 0) + tokens,
+            "tokens": tokens,
             "terminated_by": "final_answer",
         }
 
@@ -168,13 +294,14 @@ def think_node(state: GraphState) -> dict:
     tr = tools.call(action["name"], action.get("args", {}))
     return {
         "step": s.step,
+        "steps_executed": 1,
         "history": [{                        # ← reducer 会把它追加进去
             "action": action,
             "observation": (tr.data if tr.ok else f"ERROR: {tr.error}"),
             "ok": tr.ok,
         }],
-        "tokens": state.get("tokens", 0) + tokens,
-        "tool_calls": state.get("tool_calls", 0) + 1,
+        "tokens": tokens,
+        "tool_calls": 1,
     }
 
 
@@ -329,10 +456,32 @@ def run_graph_agent(issue: Issue, *, use_mock: bool = True,
     t0 = time.time()
     out = RunResult(issue_id=issue.issue_id)
 
+    # ★★ 组件在这里建**一次**，通过 config 注入给所有节点 ★★
+    #
+    # 第一版是"节点各自建 + 模块级收集器收口"，本函数要维护一个
+    # `created` 列表、还要 `global _OPEN_STORES` 置入/清空 ——
+    # 那段代码就是 LOC 里的"资源收口补丁"（见 `compare.py` 的 LOC 分解）。
+    #
+    # 现在改注入后：
+    #   · 组件生命周期和手写版**对齐**（一次运行一次）—— 对照更公平
+    #   · 耗时差里不再含"每轮重建组件"的开销 —— 数字才归因得了编排
+    #   · 不需要全局变量 —— 线程安全
+    #
+    # ⚠️ 但要说清楚：**这不是"框架版凭空少了一堆麻烦"**，
+    #    而是"我第一版没用框架提供的机制"。框架给了 `config.configurable`，
+    #    用上它，麻烦就没了 —— 代价是要多学一个概念（依赖注入通道），
+    #    而且这个通道是**约定式的**（key 名写错只能运行时发现）。
+    store = None                                            # [lifecycle]
     try:
+        # >>> lifecycle: begin
+        # 建组件（一次）+ 注入（一次）
+        store, tools = setup_tools()
+        llm = make_llm(use_mock=use_mock)
         app = build_graph(with_checkpoint=with_checkpoint)
-        cfg = {"configurable": {"thread_id": f"thread-{issue.issue_id}"}} \
-            if with_checkpoint else {}
+        cfg: dict = {"configurable": {"store": store, "tools": tools, "llm": llm}}
+        if with_checkpoint:
+            cfg["configurable"]["thread_id"] = f"thread-{issue.issue_id}"
+        # <<< lifecycle: end
         final_state = app.invoke({"issue": issue, "history": []}, cfg)
 
         # ★ 注意 `final` 有两条来路：
@@ -340,7 +489,10 @@ def run_graph_agent(issue: Issue, *, use_mock: bool = True,
         #   · 兜底：fallback 节点写的（空列表）
         #   因为两条路都经过 fallback，所以这里直接读 final 即可。
         out.predicted = final_state.get("final", []) or []
-        out.steps = final_state.get("step", 0)
+        # ★ 用独立的计数器而不是 `step` —— 见 `AgentState` 里对
+        #   `steps_executed` 的说明：`step` 是"当前步号"，
+        #   它恰好等于步数只是巧合（每个节点都 +1），不该拿来当指标。
+        out.steps = final_state.get("steps_executed", 0)
         out.tool_calls = final_state.get("tool_calls", 0)
         out.tokens = final_state.get("tokens", 0)
         out.terminated_by = final_state.get("terminated_by", "") or (
@@ -353,6 +505,16 @@ def run_graph_agent(issue: Issue, *, use_mock: bool = True,
     except Exception as e:                                  # noqa: BLE001
         out.terminated_by = "error"
         out.error = f"{type(e).__name__}: {str(e)[:200]}"
+    finally:
+        # >>> lifecycle: begin
+        # ★ 只关一次 —— 因为只建了一次。
+        #   （第一版这里要遍历 `created` 列表逐个关，因为建了 N 次。）
+        if store is not None:
+            try:
+                store.close()
+            except Exception:                               # noqa: BLE001
+                pass
+        # <<< lifecycle: end
 
     out.elapsed_ms = int((time.time() - t0) * 1000)
     return out

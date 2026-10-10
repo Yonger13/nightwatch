@@ -34,6 +34,7 @@ Nightwatch · 记忆存储层
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import sqlite3
@@ -161,9 +162,38 @@ class HashEmbedding:
        duplicate 检测的 F1 只能到 0.50。
        原因是它无法区分"同一个问题"和"碰巧都含同一个高频词"。
 
-    → 需要真实效果时请用 APIEmbedding（设置 NW_LLM_API_KEY 即可自动启用）。
-    这个契约（"输入文本 → 定长归一化向量"）保持不变，所以上层代码完全不用改。
-    这就是**接口隔离**的价值。
+    ============================================================
+    ★★ 踩过的坑：它曾经**根本不是确定性的**（2026-10-09 修）
+    ============================================================
+    第一版用的是 Python 内置的 `hash()`：
+
+        h = hash(tok) % self.dim
+
+    **但 `hash(str)` 默认启用 PYTHONHASHSEED 随机化**
+    （CPython 的防哈希碰撞攻击措施）——
+
+        同一个字符串，**在不同进程里 hash 值不同**
+        → 嵌入向量不同 → 相似度不同 → 命中/不命中会翻转
+
+    实测（同一个样本 #907，跑两次）：
+
+        进程1: 原始最高分 = 0.425
+        进程2: 原始最高分 = 0.444        ← 同输入，结果不同
+
+    **后果比"数字不准"严重得多**：
+      · **实验不可复现** —— 对照实验的前提直接没了
+      · 一个"边界样本"可能这次命中、下次不命中，
+        于是"循环覆盖率"这类指标**时好时坏**，无法判断改动是否有效
+      · 主项目的评测（`run_eval.py`）也用了它 → 指标本身不稳定
+
+    **修法**：用 `hashlib.blake2b`（密码学哈希，无随机化）替代内置 `hash()`。
+      blake2b 比 md5 更快且更安全；取前 8 字节转整数足够均匀。
+
+    **教训**：
+      > **"确定性"必须验证，不能声明。**
+      > 文档里写着"同样输入永远得到同样向量"，而实现用的是
+      > Python 里最不"永远"的那个函数 —— 这种矛盾不会报错，
+      > 只会让结果悄悄地不稳定。
     """
 
     def __init__(self, dim: int = 256):
@@ -182,7 +212,11 @@ class HashEmbedding:
         tokens.extend(text.split())
 
         for tok in tokens:
-            h = hash(tok) % self.dim
+            # ★ 用 blake2b 而不是内置 hash() —— 见类文档里的说明。
+            #   取前 8 字节（64 bit）转 int，模维度得到桶位置。
+            h = int.from_bytes(
+                hashlib.blake2b(tok.encode("utf-8"), digest_size=8).digest(),
+                "big") % self.dim
             vec[h] += 1.0
 
         # L2 归一化：归一化之后，余弦相似度 = 点积，计算更快

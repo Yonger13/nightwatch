@@ -108,9 +108,17 @@ def run_custom_agent(issue: Issue, *, use_mock: bool = True,
     """
     t0 = time.time()
     result = RunResult(issue_id=issue.issue_id)
+    # ★ 步数要在循环外初始化 —— 见下面的说明
+    executed_steps = 0
+    # >>> lifecycle: begin
+    # ★ store 也要在 try 外声明 —— 否则 finally 里拿不到（UnboundLocalError），
+    #   而这个异常会盖掉真正的业务异常，让排查方向跑偏。
+    store = None
+    tools = None
+    # <<< lifecycle: end
 
     try:
-        store, tools, llm = _setup(use_mock=use_mock)
+        store, tools, llm = _setup(use_mock=use_mock)       # [lifecycle]
 
         # ---------- ① 记忆召回 ----------
         # ★ 这一步在 LangGraph 里是一个节点（因为它是"图的一个阶段"）；
@@ -121,7 +129,8 @@ def run_custom_agent(issue: Issue, *, use_mock: bool = True,
         # ---------- ② 循环 ----------
         state = AgentState(issue=issue, memory=memory, history=[])
         for step in range(MAX_STEPS):
-            state.step = step + 1
+            executed_steps = step + 1
+            state.step = executed_steps
 
             # 拼提示词（两版共用同一个函数）
             messages = build_prompt(state)
@@ -165,17 +174,57 @@ def run_custom_agent(issue: Issue, *, use_mock: bool = True,
     except Exception as e:                                  # noqa: BLE001
         result.terminated_by = "error"
         result.error = f"{type(e).__name__}: {str(e)[:200]}"
+    finally:
+        # >>> lifecycle: begin
+        # ★ 关掉 SQLite 连接 —— 不然每次运行都留一个未关闭的连接。
+        #   在单元测试里这会刷一屏 ResourceWarning，把真正的失败信息淹掉。
+        #   （"噪音淹掉信号"在对测试里是实打实的成本：142 个用例全在跑，
+        #     一条真报错混在 200 行 warning 里，你会先以为是 warning 的问题。）
+        if store is not None:
+            try:
+                store.close()
+            except Exception:                               # noqa: BLE001
+                pass
+        # <<< lifecycle: end
 
-    result.steps = state.step if "state" in dir() else 0
+    # ============================================================
+    # ★★ 这里踩过一个坑：`state.step` 不是"走了几步"
+    # ============================================================
+    # 原写法是 `result.steps = state.step if "state" in dir() else 0`。
+    #
+    # 它有两个问题，第二个更隐蔽：
+    #
+    #   ① `"state" in dir()` —— 在**函数内** `dir()` 只返回**局部变量名**，
+    #      所以这条判断其实是对的（state 在 try 里赋值）。
+    #      但它掩盖了真正的 bug（下面 ②）。
+    #
+    #   ② **`state.step` 等于"最后一次迭代的步号"，不等于"实际执行步数"。**
+    #      调试时看到：一条真正跑了 3 轮的样本，`steps` 报的是 1。
+    #      原因：LangGraph 版的 `final_state["step"]` 也是同样语义 ——
+    #      两边都是"最后写入的值"，所以**这个错误在两版里是对称的**，
+    #      一致率照样 100%，只是步数分布的数字整体偏小。
+    #
+    #      ⚠️ 而"步数分布"正是本实验判定循环覆盖率的依据 ——
+    #        它偏小会让"走了 ≥2 步"的样本被算成 1 步，
+    #        于是**循环覆盖率被低估**。这正是"指标算错比指标难看更危险"。
+    #
+    # 修法：单独维护一个 `executed_steps` 计数器，在循环体开头自增。
+    #   **不用 `state.step`** —— 它的语义是"当前步号"（供提示词用），
+    #   不是"总共跑了几步"。两者在提前 break 时恰好相等，
+    #   但在正常结束时不同，所以不能混用。
+    # ============================================================
+    result.steps = executed_steps
     result.elapsed_ms = int((time.time() - t0) * 1000)
     return result
 
 
 def _setup(use_mock: bool):
     """构造组件（两版共用，保证公平）。"""
+    # >>> lifecycle: begin
     store, tools = setup_tools()
     llm = make_llm(use_mock=use_mock)
     return store, tools, llm
+    # <<< lifecycle: end
 
 
 if __name__ == "__main__":

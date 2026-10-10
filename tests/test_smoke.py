@@ -1559,9 +1559,574 @@ class TestStaleDetection(unittest.TestCase):
         self.assertAlmostEqual(st["affected_ratio"], 2 / 3, places=3)
 
 
+class TestCompareExperiment(unittest.TestCase):
+    """LangGraph 对照实验 —— 守护"实验本身有没有失效"。
+
+    ============================================================
+    ★ 为什么对照实验也要写测试
+    ============================================================
+    直觉上"实验脚本"不是产品代码，跑一次出个数字就行，不必测。
+
+    但这个项目真的踩了坑：**循环覆盖率是 0/15 的时候，脚本正常退出、
+    报告正常生成、一致率还是 100%** —— 只是那个 100% 建立在
+    "两版都在第 1 步就结束"上，**循环一次都没跑**。
+    而"框架版多 67 行"里有相当一部分正是那些从未执行的代码。
+
+    **结论就写在输出里，但它悄无声息地不成立。**
+
+    所以这组测试守的是"实验的前提条件"，而不是"实验的结论"：
+      ① 样本必须覆盖**两条**决策路径（命中记忆 / 不命中记忆）
+      ② 命中与不命中的相似度分布必须**分得开**（否则阈值切不出来）
+         —— 且余量必须用**含探针的完整样本集**量（只用标定样本会偏乐观）
+      ③ 两版的步数统计口径必须**一致**（否则步数分布没法对齐比较）
+
+    ★ 这组测试本身被修过两次，两次都是"假保护"：
+      第一次：按被测阈值分组 → 循环论证（改阈值测试照样绿）
+      第二次：分组对了，但样本集漏了探针 → 量出的余量比现实乐观
+      **两次都是"看起来在守，实际没守"。** 所以下面每个断言旁边
+      都写了"它是怎么被破坏验证抓出来的" —— 那段历史比断言本身值钱。
+    """
+
+    def _samples(self):
+        """导入实验的 shared 模块（用 sys.path，不用 importlib）。
+
+        ★ 踩过的坑：一开始用 `importlib.util.spec_from_file_location` 加载，
+          结果 `@dataclass` 装饰器报
+          `'NoneType' object has no attribute '__dict__'` ——
+          因为 spec 加载的模块**没有注册进 `sys.modules`**，
+          而 dataclass 解析类型注解时要 `sys.modules.get(cls.__module__)`。
+          **这类"加载方式导致的坑"和业务无关，但会浪费半小时。**
+          改用 sys.path + 普通 import 就没事。
+        """
+        import importlib
+        from pathlib import Path
+        exp_dir = Path(__file__).resolve().parents[1] / "experiments" / "langgraph_compare"
+        added = str(exp_dir) not in sys.path
+        if added:
+            sys.path.insert(0, str(exp_dir))
+        try:
+            return importlib.import_module("shared")
+        finally:
+            pass  # 故意不清理：后面的测试还要用同一份模块
+
+    def test_样本覆盖两条决策路径(self):
+        """★ 核心守卫：样本里必须同时有"命中记忆"和"不命中记忆"的。
+
+        这是那个 0/15 事故的直接修复点 —— 如果哪天有人加样本时
+        只加了命中记忆的，循环覆盖率会**安静地回到 0**，
+        而报告仍然一切正常。
+
+        **断言的是"两类都存在"，不是"各有几条"** ——
+        数量是可以调整的，性质不可以。
+        （本项目在别处也用了这个原则：断言约束，不断言快照。）
+        """
+        mod = self._samples()
+        store, _ = mod.setup_tools()
+        try:
+            hits, misses = [], []
+            for iss in mod.sample_issues():
+                s = store.recall(iss.search_text(), top_k=1)[0][1]
+                (hits if s >= mod.MIN_RECALL_SIMILARITY else misses).append(
+                    (iss.issue_id, s))
+        finally:
+            store.close()
+
+        self.assertTrue(hits, "没有任何样本命中记忆 —— "
+                              "这条'记忆 → 0 轮'的对照路径没被测到")
+        self.assertTrue(misses, "没有任何样本不命中记忆 —— "
+                                "循环永远不会执行（这就是那次的 0/15）")
+
+    def test_命中与不命中的相似度分布分得开(self):
+        """阈值必须真的能切分两组，而不是勉强落在重叠区。
+
+        为什么要断言"有余量"而不是"能分开"？
+        因为贴着边界取的阈值会让**循环覆盖率随措辞微调翻来覆去** ——
+        今天过、明天不过，实验就不可复现了。
+        留余量是为了"改一句话不会翻转结论"。
+
+        ★ 这里还守着一个更隐蔽的问题：**嵌入维度过低会导致哈希碰撞**，
+          把完全无关的样本也抬上去（实测 dim=64 时"UI 按钮错位"
+          拿到 0.587，比"该命中"的 #901 还高）。
+          那种情况下**调阈值怎么调都不对** —— 因为分布是重叠的。
+
+        ★★ 修过一次：断言从"dim >= 256"改成"dim == 主项目默认值" ★★
+          原断言 `assertGreaterEqual(EMBED_DIM, 256)` 是**软断言** ——
+          它能过 1024，也能过 4096，还能过任何更大的数。
+          但它**没有守住真正重要的那件事**：实验用的维度应该
+          **和主项目一致**（减少一个变量），而不是"足够大就行"。
+
+          实测（`dim_sweep.py`）：256 的空档 +0.061 已经够用，
+          1024 的 +0.144 只是"更宽松"，不是"更对"。
+          **用更宽松的参数会让实验比真实系统更稳健，
+          从而测不出真实系统的脆弱点。**
+
+          所以现在断言：① `EMBED_DIM` 等于主项目 `HashEmbedding` 默认值；
+          ② 阈值**落在空档内部**（两个方向都有余量）。
+          —— ②比"空档 > 0"更强：空档存在不等于阈值可用。
+
+        ★★ 还有一个更隐蔽的坑：**分组不能按被测对象自身来分** ★★
+          这组测试第一版是这么写的：
+
+              (hs if s >= MIN_RECALL_SIMILARITY else ms).append(s)
+              # 然后断言 min(hs) > max(ms)
+
+          用**被测的那个阈值**分组，再断言这个分组分得开 ——
+          **循环论证**。阈值怎么错，分组就跟着怎么错，断言永远成立。
+
+          这是**故意破坏验证**时发现的：把阈值改成 0.40（明显会漏召回），
+          测试照样绿。也就是说那条断言**根本没有保护作用**。
+
+          （如果没做破坏验证，我会一直以为它有保护作用 ——
+           这比"没有断言"更糟：**它给了虚假的安全感**。）
+
+          修法：分组依据是**样本的设计意图**（`WANT_HIT` / `WANT_MISS`），
+          然后拿这个"真值分组"去检验阈值。
+          **测试的对照组必须来自被测对象之外。**
+
+        ★★ 修了第二次：分组修对了，但**样本集是残缺的** ★★
+          上面那版修完，分组不再循环论证了 —— 但仍然**只用了标定样本**，
+          漏掉了 `dim_sweep.py` 里的 3 个探针。
+
+          实测两套口径：
+
+              仅标定样本（测试当时的口径）  low_hit - max(#906,#907)
+                                          = 0.355 - 0.286 = **0.069**
+              含 3 个探针（真实口径）        low_hit - 探针最高
+                                          = 0.355 - 0.293 = **0.061**
+
+          而真正卡住阈值下限的是**探针**「UI 按钮错位」= 0.293，
+          比标定样本 #906（0.286）**还高 0.007**。
+
+          **所以测试报的是一个偏乐观的数，而且它守的那条边不是真的那条边。**
+          根因是 `PROBES` 定义在 `dim_sweep.py` 里，测试 import 不到 ——
+          于是"同一件事"有了两份实现，各自长出了不同的口径。
+          这和本文件开头讲的 `parse_action`/`_format_memory` 是**同一个坑**：
+          **"共用"要复用实现，不要各写一份**（对齐是一个面，不是点）。
+
+          修法：`PROBES` 上提到 `shared.py`，并新增
+          `shared.separation_margin(store)` 作为**唯一的余量口径**，
+          测试和 `dim_sweep.py` 都调它。
+          测试另加一条断言：`n_unrelated == 5` —— 防止哪天有人
+          把探针从里面去掉，测试**悄悄退化成乐观口径**而数字看着都正常。
+
+        ★★ 同时把余量断言从 gap 换成 worst ★★
+          原来断言 `gap > 0.05`（gap = 命中组最低 - 无关组最高）。
+          问题：**gap 是两个方向余量之和，会掩盖单边贴地**。
+          可能一边 +0.040、另一边 +0.002，gap 有 0.042 看着挺宽，
+          实际某一侧已贴着悬崖。本项目实测过边界是**单侧**的
+          （只对"无关样本变热"敏感），所以该守的是 `min(两侧余量)`。
+          现在断言 `worst > 0.02`（当前实测 +0.027）。
+        """
+        mod = self._samples()
+
+        # ① 维度必须与主项目默认值一致
+        #
+        # ★ 用 inspect 读签名，而不是硬编码 256 ——
+        #   这样主项目改了默认值，测试会**自动跟着变**（并可能失败），
+        #   而不是"测试写死 256、主项目改成 512、两边悄悄不一致"。
+        #   这是"数字必须有出处"原则在测试里的应用。
+        import inspect
+        from nightwatch.memory.store import HashEmbedding
+        main_default = inspect.signature(
+            HashEmbedding.__init__).parameters["dim"].default
+        self.assertEqual(
+            mod.EMBED_DIM, main_default,
+            f"实验用了 EMBED_DIM={mod.EMBED_DIM}，"
+            f"而主项目 HashEmbedding 默认值是 {main_default}。"
+            f"实验应复用主项目参数以减少变量 —— "
+            f"除非有实测理由要偏离（那种情况要在共享注释里写明理由）")
+
+        store, _ = mod.setup_tools()
+        try:
+            # ★★ 关键：用 `shared.separation_margin()` 量余量 ★★
+            #
+            # 为什么不再自己分组算：
+            #   原来看起来没问题（按 WANT_HIT/WANT_MISS 分组是对的），
+            #   但**样本集是残缺的** —— 只用标定样本，漏了 3 个探针。
+            #   实测：仅标定样本 → 余量 0.069；含探针 → 0.061。
+            #   而真正卡住阈值下限的是探针「UI 按钮错位」= 0.293，
+            #   比标定样本 #906（0.286）还高。
+            #
+            #   **守卫必须测"最危险的那个数"。**
+            #   只测乐观口径 = 守卫被配了一个比现实更宽的边界，
+            #   于是它守不住真正会发生的那种翻车。
+            #
+            # 现在改调 `shared.separation_margin()` —— 口径**唯一**，
+            # 和 `dim_sweep.py` 用的是同一份实现（含探针）。
+            # **"共用"要复用实现，不要各写一份**：上次是解析/渲染，
+            # 这次是样本集 —— 同一个坑的又一次。
+            m = mod.separation_margin(store)
+            low_hit, high_miss = m["low_hit"], m["high_miss"]
+
+            # 顺带断言"确实含了探针" —— 否则哪天有人把探针从
+            # separation_margin 里去掉，这个测试会**悄悄退化成乐观口径**，
+            # 而所有数字看起来仍然正常。
+            # （这正是"空结果掩盖 bug"的同一类陷阱。）
+            self.assertEqual(
+                m["n_unrelated"], 5,
+                f"无关组应有 5 个（#906/#907 + 3 探针），实得 {m['n_unrelated']} "
+                f"—— 探针被漏掉了，余量会变乐观，守卫就守不住了")
+        finally:
+            store.close()
+
+        self.assertGreater(low_hit, high_miss,
+                           f"两组重叠：命中组最低 {low_hit:.3f} "
+                           f"< 无关组最高 {high_miss:.3f}")
+
+        # ② ★ 余量断言 —— 换成"最危险的那个数"
+        #
+        #   原来断言的是 gap（= low_hit - high_miss），阈值 0.05。
+        #   问题：**gap 是两个方向余量之和，会掩盖单边贴地**。
+        #   可能一边 +0.040、另一边 +0.002，gap 看着 0.042 挺宽，
+        #   实际已经贴着悬崖了。
+        #
+        #   本项目实测过边界是**单侧**的（只对"无关样本变热"敏感），
+        #   所以真正该守的是 **min(两侧余量)**。
+        #   实测当前值：到下限 +0.027、到上限 +0.035 → worst = +0.027。
+        #
+        #   阈值取 0.02 的理由：
+        #     · 比"能分开"（>0）严 —— 保证有余量
+        #     · 但不硬编码 0.027 —— 那是快照，改参数就过期
+        #       （本项目原则：不编数字、断言约束不断言快照）
+        #     · 0.02 是"两侧都不许贴着"的下限约束
+        self.assertGreater(
+            m["worst"], 0.02,
+            f"最紧的一侧余量只有 {m['worst']:+.3f} "
+            f"（到下限 {m['slack_lo']:+.3f} / 到上限 {m['slack_hi']:+.3f}）"
+            f"—— 阈值贴着某一边，改措辞就会翻转结论")
+
+        # ③ ★ 阈值必须落在空档内部（比"空档 > 0"更强）
+        #
+        #   为什么这一条是必要的：空档存在**不代表阈值可用**。
+        #   实测 dim=256 时（旧阈值 0.30）：
+        #       到下限（阈值 - 无关组最高）= 0.300 - 0.293 = +0.007
+        #   阈值几乎贴着探针的上界 —— 任何让无关样本变热的改动
+        #   都会把它推过阈值，#906 会从"不命中"变成"命中"，
+        #   循环覆盖率从 6/18 掉到 3/18。
+        #
+        #   所以两个方向都要断言，缺一不可：
+        #       到下限 > 0  → 排除误召回（不该命中的命中了）
+        #       到上限 > 0  → 保证不漏召回（该命中的没命中）
+        t = mod.MIN_RECALL_SIMILARITY
+        self.assertGreater(
+            t - high_miss, 0,
+            f"阈值 {t} 低于/等于无关组最高分 {high_miss:.3f} —— "
+            f"会有误召回（该走完整循环的样本变成命中）")
+        self.assertGreater(
+            low_hit - t, 0,
+            f"阈值 {t} 高于/等于命中组最低分 {low_hit:.3f} —— "
+            f"会有漏召回（该走'记忆 → 0 轮'的样本变成不命中）")
+
+    def test_两版步数统计口径一致(self):
+        """★ 两版必须用同一个口径统计步数，否则步数分布没法比较。
+
+        踩过的坑：手写版原本用 `state.step`（= 最后一次迭代的步号），
+        框架版用 `final_state["step"]`（= 最后一个节点写入的值）。
+        **两个都是"最后写入的值"而不是"执行了几步"** ——
+        所以错误是**对称的**，一致率照样 100%，只是数字整体偏小。
+
+        而"步数分布"正是判定循环覆盖率的依据 → **覆盖率被低估**。
+        这是"指标算错比指标难看更危险"的典型：
+        一个算错的指标会给出一个看起来合理的错结论。
+
+        这里断言两版在同样输入下**步数相同**。
+        """
+        import importlib.util
+        from pathlib import Path
+        exp_dir = Path(__file__).resolve().parents[1] / "experiments" / "langgraph_compare"
+        sys.path.insert(0, str(exp_dir))
+        try:
+            from custom_agent import run_custom_agent
+            from shared import sample_issues
+            try:
+                from graph_agent import run_graph_agent
+            except ImportError:
+                self.skipTest("LangGraph 未安装")
+            for iss in sample_issues():
+                c = run_custom_agent(iss, use_mock=True)
+                g = run_graph_agent(iss, use_mock=True)
+                self.assertEqual(
+                    c.steps, g.steps,
+                    f"{iss.issue_id} 步数不一致：手写 {c.steps} vs "
+                    f"LangGraph {g.steps}（两版统计口径不同）")
+        finally:
+            if str(exp_dir) in sys.path:
+                sys.path.remove(str(exp_dir))
+
+    def test_至少有一个运行走到第二步(self):
+        """★ 验收标准的直接编码：循环覆盖率 > 0。
+
+        这条测试就是用户给的验收条件 —— 把它写进测试，
+        意味着**它不会再悄悄地失效**。
+        """
+        import importlib.util
+        from pathlib import Path
+        exp_dir = Path(__file__).resolve().parents[1] / "experiments" / "langgraph_compare"
+        sys.path.insert(0, str(exp_dir))
+        try:
+            from custom_agent import run_custom_agent
+            from shared import sample_issues
+            steps = [run_custom_agent(i, use_mock=True).steps
+                     for i in sample_issues()]
+            self.assertGreater(
+                sum(1 for s in steps if s >= 2), 0,
+                f"没有任何运行走到第 2 步（步数 {steps}）—— 循环从未被执行")
+        finally:
+            if str(exp_dir) in sys.path:
+                sys.path.remove(str(exp_dir))
+
+    # =========================================================================
+    # ★★ 下面三条守"准确率"这个新指标本身是不是可信的 ★★
+    # =========================================================================
+
+    def test_准确率参照不依赖被测对象(self):
+        """★★ 参照（expected_label）必须**在被测对象之外** ★★
+
+        这是准确率指标的**根基** —— 如果被测逻辑能读到标准答案，
+        那"准确率"就是循环论证：它测的是"被测代码有没有把答案抄对"。
+
+        怎么验？**把 `Issue` 上的 `gold_labels` 清空，看预测变不变。**
+          变了   → 被测逻辑读了标准答案 → 参照被污染 → 指标无效
+          不变   → 参照确实在被测对象之外 ✓
+
+        ★ 为什么这个风险是真实的（不是假想）：
+          主项目里 `react.py:1081` **就真的读** `issue.gold_labels`
+          来判定"是否误诊"。今天的实验路径不读它，但"今天不读"不是保证 ——
+          哪天有人把实验的编排换成主项目的 react 循环，这个泄漏就会发生。
+          所以权威的那份放在 `shared.EXPECTED_LABELS`（模块级字典），
+          不放在会被传进被测代码的 `Issue` 上。
+
+        ★ 这和测试里用硬编码 `WANT_HIT`/`WANT_MISS` 分组、
+          把探针收回 `shared` 是**同一个原则的三次应用**：
+          **参照必须来自被测对象之外。**
+        """
+        exp_dir = self._exp_dir()
+        try:
+            import dataclasses
+            from custom_agent import run_custom_agent
+            from shared import sample_issues
+            self._graph_module()          # 没装 langgraph 就跳过（见其 docstring）
+            from graph_agent import run_graph_agent
+            for iss in sample_issues():
+                blank = dataclasses.replace(iss, gold_labels=[])
+                c1 = run_custom_agent(iss, use_mock=True).predicted
+                c2 = run_custom_agent(blank, use_mock=True).predicted
+                self.assertEqual(
+                    c1, c2,
+                    f"{iss.issue_id} 手写版：清空 gold_labels 后预测变了 "
+                    f"（{c1} → {c2}）—— 被测逻辑读到了标准答案，"
+                    f"准确率指标是循环论证")
+                g1 = run_graph_agent(iss, use_mock=True).predicted
+                g2 = run_graph_agent(blank, use_mock=True).predicted
+                self.assertEqual(
+                    g1, g2,
+                    f"{iss.issue_id} LangGraph 版：清空 gold_labels 后预测变了 "
+                    f"（{g1} → {g2}）—— 同上")
+        finally:
+            self._cleanup_path(exp_dir)
+
+    def test_准确率不做假_已知基线是下限不是满分(self):
+        """★★ 准确率必须等于"算得出来"的那个值 —— 现在是 5/6 的下限，不是满分 ★★
+
+        ⚠️⚠️ **这条断言现在是"下限"，不是"满分"，而且这是有意的。** ⚠️⚠️
+
+        2026-10-11 实测：一致率 100%，但准确率只有 **50%** ——
+        **两版一起错**。根因是标签体系三层不匹配：
+          ① `parse_final` 不认 Mock 的 `predicted_labels` 字段（实验侧）
+          ② 它退化成**子串匹配**：`bug/timeout` 含 "bug" 就判成 `Bug`（实验侧）
+          ③ 主项目 `MockLLM` 注释写"记忆优先"、实现是"记忆兜底"，
+             且所有标签被无条件加 `bug/` 前缀（主项目）
+        实测：只修 ①② 准确率仍是 3/6；三层一起修才到 6/6。
+
+        **用户决定：本轮先让度量落地，修复另开一轮。**
+        所以这里断言的是"**不得低于已记录的基线**"（约束式），
+        而不是"等于 50%"（快照式）—— 后者一旦修复就会假失败。
+
+        ★ 为什么用 `>=` 而不是 `==`：
+          本项目原则是"**断言约束，不断言快照**"。这里约束是
+          "准确率不许退步"；将来修好标签体系后它会自动满足新高度。
+        ★ **修复那轮请把这个下限提到 1.0** —— 那时它就是真正的守卫了
+          （守"实验真的在测正确的事"）。数字写在这里就是为了让那一轮
+          有个明确的待办，而不是靠记忆。
+        """
+        exp_dir = self._exp_dir()
+        try:
+            from custom_agent import run_custom_agent
+            from shared import label_accuracy, sample_issues
+            self._graph_module()          # 没装 langgraph 就跳过
+            from graph_agent import run_graph_agent
+            issues = sample_issues()
+            cr = {i.issue_id: run_custom_agent(i, use_mock=True) for i in issues}
+            gr = {i.issue_id: run_graph_agent(i, use_mock=True) for i in issues}
+            ac = label_accuracy(cr, "custom")
+            ag = label_accuracy(gr, "graph")
+        finally:
+            self._cleanup_path(exp_dir)
+
+        # 先守"指标本身没坏"：每个样本都算进去了
+        self.assertEqual(ac["n"], len(issues), "手写版有样本没被算进准确率")
+        self.assertEqual(ag["n"], len(issues), "LangGraph 版有样本没被算进准确率")
+        self.assertEqual(ac["unknown"], [],
+                         f"这些样本没有设计意图，准确率算不出来：{ac['unknown']}")
+
+        BASELINE = 0.5          # ← 修复标签体系后提到 1.0（见 docstring）
+        for a in (ac, ag):
+            self.assertGreaterEqual(
+                a["rate"], BASELINE,
+                f"{a['side']} 准确率 {a['rate']:.0%} 低于已记录基线 {BASELINE:.0%} "
+                f"（错的：{a['wrong']}）—— 准确率退步了，"
+                f"这不是「还没修好」的问题，是修坏了")
+
+    def test_准确率不满足时不得宣称等价性(self):
+        """★★ 一致率 100% 而准确率 <100% 时，报告**必须**说"等价性不成立" ★★
+
+        这条守的是"**报告说的话和数字一致**"。
+
+        WHY：一致率天然会掩盖"两版一起错"—— 两版一起错时它照样 100%
+        （docs/08"坑 2"：对称的错误最危险）。如果报告在那种情况下还打印
+        "✓ 两版功能等价"，读报告的人就被骗了，而且**不会报错**。
+        这正是本项目反复批评的"静默失效"。
+
+        加这个指标之前，报告就是这样：一致率 100% → 打勾，
+        而实际准确率只有 50%。**所以这条测试是在守"报告不能再说假话"。**
+
+        ★ 判据本身（`shared.equivalence_valid`）不在测试里重写 ——
+          测试调的是报告调的那一份实现（否则又是"同一件事两份实现"）。
+        """
+        exp_dir = self._exp_dir()
+        try:
+            from shared import equivalence_valid
+        finally:
+            self._cleanup_path(exp_dir)
+
+        # ① 用户点名的那条规则：一致率满 + 准确率不满 → 不成立
+        self.assertFalse(
+            equivalence_valid(1.0, 0.5, 0.5),
+            "一致率 100% + 准确率 50% 被判成「等价成立」—— "
+            "报告会说假话（两版一起错却被当成功能等价）")
+        # ② 两个方向都要：只有一侧准确率不满，也不成立
+        self.assertFalse(equivalence_valid(1.0, 1.0, 0.5),
+                         "只有 LangGraph 版准确率不满也必须是「不成立」")
+        self.assertFalse(equivalence_valid(1.0, 0.5, 1.0),
+                         "只有手写版准确率不满也必须是「不成立」")
+        # ③ 一致率不满 → 不成立
+        self.assertFalse(equivalence_valid(0.83, 1.0, 1.0),
+                         "两版结果不一致却被判成等价")
+        # ④ 覆盖不足 → 不成立（一致率再漂亮也不行）
+        self.assertFalse(
+            equivalence_valid(1.0, 1.0, 1.0, covered=False),
+            "循环没跑 / 两版都为空时，一致率 100% 也不能算等价成立 —— "
+            "那可能只是「两版一起退化成同一个空答案」")
+        # ⑤ 三个前提都满足才算成立（防止把它写成永远返回 False）
+        self.assertTrue(
+            equivalence_valid(1.0, 1.0, 1.0, covered=True),
+            "三个前提都满足却判成不成立 —— 这个判据被写成了永远说不，"
+            "和「永远说是」一样没用")
+
+    def test_组件在一次运行里只建一次(self):
+        """★★ 两版的组件生命周期必须**对齐**（一次运行建一次）★★
+
+        这条守的是**耗时对比能不能成立**。
+
+        踩过的坑：第一版 `graph_agent` 的 `recall_node` / `think_node`
+        **各自调 `setup_tools()`** —— 每轮回边就重建一次 MemoryStore + 工具集。
+        于是实测的"手写 2ms / 框架 8ms"里，**有一半以上是组件重建开销**
+        （单次 `setup_tools()` ≈ 1ms，1 步的样本重建 2 次、3 步的重建 4 次）。
+        把它当成"框架慢 4 倍"是错的 —— 那是收口补丁慢，不是编排慢。
+
+        2026-10-11 改成 `config["configurable"]` 依赖注入后，
+        两版都是"一次运行建一次"，耗时差才**归因得了编排**。
+
+        ★ 这条测试把"对齐"这个前提**钉住**：如果有人又在节点里写了
+          `setup_tools()`，耗时结论会悄悄失真，而报告不会有任何异常 ——
+          所以必须由测试来拦。
+        """
+        exp_dir = self._exp_dir()
+        try:
+            from shared import sample_issues
+            import custom_agent
+            graph_agent = self._graph_module()   # 没装 langgraph 就跳过
+
+            iss = sample_issues()[0]
+
+            # --- LangGraph 版：setup_tools 只能被调 1 次 ---
+            calls = []
+            orig = graph_agent.setup_tools
+
+            def _spy():
+                calls.append(1)
+                return orig()
+
+            graph_agent.setup_tools = _spy
+            try:
+                r = graph_agent.run_graph_agent(iss, use_mock=True)
+            finally:
+                graph_agent.setup_tools = orig
+            self.assertEqual(
+                len(calls), 1,
+                f"LangGraph 版一次运行里 setup_tools() 被调了 {len(calls)} 次"
+                f"（应为 1）—— 组件生命周期又被打散了，"
+                f"耗时对比会重新混入重建开销")
+
+            # --- 手写版：同样只能是 1 次（否则就不叫"对齐"）---
+            calls2 = []
+            orig2 = custom_agent.setup_tools
+
+            def _spy2():
+                calls2.append(1)
+                return orig2()
+
+            custom_agent.setup_tools = _spy2
+            try:
+                custom_agent.run_custom_agent(iss, use_mock=True)
+            finally:
+                custom_agent.setup_tools = orig2
+            self.assertEqual(
+                len(calls2), 1,
+                f"手写版 setup_tools() 被调了 {len(calls2)} 次（应为 1）")
+
+            # --- 两版必须相等（对齐的判据是"相等"，不是"各自够少"）---
+            self.assertEqual(
+                len(calls), len(calls2),
+                f"两版组件创建次数不一致：LangGraph {len(calls)} vs "
+                f"手写 {len(calls2)} —— 耗时差不能归因给编排")
+        finally:
+            self._cleanup_path(exp_dir)
+
+    # --- 上面几条用的小工具 ---
+
+    def _exp_dir(self):
+        """把实验目录加进 sys.path（返回它，供 finally 清理）。"""
+        from pathlib import Path
+        exp_dir = Path(__file__).resolve().parents[1] / "experiments" / "langgraph_compare"
+        sys.path.insert(0, str(exp_dir))
+        return exp_dir
+
+    def _cleanup_path(self, exp_dir):
+        if str(exp_dir) in sys.path:
+            sys.path.remove(str(exp_dir))
+
+    def _graph_module(self):
+        """导入 `graph_agent`；本机没装 langgraph 就**跳过**这条测试。
+
+        ★ 为什么跳过而不是失败：`langgraph` 是**实验专用**依赖，
+          主项目刻意保持零第三方依赖（见项目约定）。
+          所以在没装它的解释器里，这些守卫应当 skip 而不是红 ——
+          否则"跑测试"这件事会因为一个实验依赖而变得没法做。
+
+        ⚠️ 但要意识到代价：**跳过 = 没在守。**
+          所以装了 langgraph 的环境（CI、以及本机 `envs/default`）
+          必须真的跑一遍这些用例，否则它们形同虚设。
+        """
+        try:
+            import graph_agent
+            return graph_agent
+        except ImportError:
+            self.skipTest("LangGraph 未安装 —— 这是实验专用依赖")
+
+
 class TestProspectiveValidation(unittest.TestCase):
     """前瞻验证（轨道 A/B）—— 守护三个最容易错的地方。
-
     ============================================================
     这组测试守的是什么
     ============================================================
