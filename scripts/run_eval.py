@@ -59,6 +59,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from nightwatch.config import (                                    # noqa: E402
     MODELS, MODEL_ROUTING, THINKING_POLICY, load_settings,
 )
+from nightwatch.eval.calibration import calibration_summary            # noqa: E402
 from nightwatch.eval.dataset import (                              # noqa: E402
     DatasetBuilder, EvalDataset, build_synthetic_dataset,
 )
@@ -642,6 +643,71 @@ def main() -> int:
        C.RED if mem_q["无效召回率"] > 0.5 else "")
     print(f"\n  {C.DIM}{mem_q['说明']}{C.RESET}")
 
+    # ============================================================
+    # 置信度校准（决定"能不能做转人工分流"）
+    # ============================================================
+    # ★ 这一节的存在理由：准确率只说"整体对不对"，
+    #   不说"**哪条靠谱**"。而"转人工分流"靠的正是后者 ——
+    #   置信度若和实际正确率对不上，任何阈值分流都会失效。
+    cal = calibration_summary(stratified)
+    hr("置信度校准与转人工阈值")
+
+    if not cal.get("可用"):
+        print(f"  {C.YELLOW}⚠ 不可用：{cal.get('原因', '')}{C.RESET}")
+        if cal.get("修复方向"):
+            print(f"  {C.DIM}修复方向：{cal['修复方向']}{C.RESET}")
+        print(f"  {C.DIM}这不是 bug，是数据问题 —— 本节的指标没有可用输入。{C.RESET}")
+    else:
+        e = cal["ece"]
+        rc = cal["risk_coverage"]
+        esc = cal["escalation"]
+
+        kv("ECE（期望校准误差）", f"{e['ece']:.4f}",
+           C.GREEN if e["ece"] < 0.05 else (C.YELLOW if e["ece"] < 0.15 else C.RED))
+        kv("MCE（最差桶偏离）", f"{e['mce']:.4f}")
+        kv("分桶数", e["n_bins"])
+        print(f"\n  {C.DIM}{e['verdict']}{C.RESET}")
+
+        # 只打印**有样本**的桶 —— 空桶对判断没有帮助，只会拉长输出
+        print(f"\n  {C.DIM}可靠性分桶（只看非空桶）{C.RESET}")
+        print(f"  {'区间':<16}{'样本':>6}{'平均置信度':>12}{'实际正确率':>12}{'偏离':>9}")
+        print(f"  {'-' * 58}")
+        for b in e["bins"]:
+            if not b["n"]:
+                continue
+            gap = b["gap"]
+            col = C.RED if abs(gap) > 0.15 else (C.YELLOW if abs(gap) > 0.08 else "")
+            print(f"  {'[' + format(b['range'][0], '.1f') + ',' + format(b['range'][1], '.1f') + ')':<16}"
+                  f"{b['n']:>6}{b['avg_confidence']:>12.4f}{b['accuracy']:>12.4f}"
+                  f"{col}{gap:>+9.4f}{C.RESET}")
+        print(f"  {C.DIM}偏离为正 = 欠自信；为负 = 过度自信{C.RESET}")
+
+        kv("AURC", f"{rc['aurc']:.4f}")
+        kv("整体错误率", f"{rc['overall_error']:.4f}",
+           C.DIM)
+        print(f"\n  {C.DIM}{rc['verdict']}{C.RESET}")
+        print(f"\n  {C.DIM}关键覆盖率点{C.RESET}")
+        for cov, point in rc["key_points"].items():
+            print(f"    保留 {cov:<5}（{point['n_kept']:>3} 条）"
+                  f"→ 错误率 {point['risk']:.3f}　准确率 {point['accuracy']:.3f}")
+
+        print()
+        if esc["found"]:
+            kv("建议转人工阈值", f"{esc['threshold']:.4f}", C.CYAN)
+            kv("覆盖率（直出比例）", f"{esc['coverage']:.1%}")
+            kv("观测准确率", f"{esc['expected_accuracy']:.1%}",
+               C.GREEN if esc["expected_accuracy"] >= 0.9 else C.YELLOW)
+            kv("转人工条数", esc["n_escalated"])
+            print(f"\n  {C.DIM}{esc['verdict']}{C.RESET}")
+            # ★ 乐观偏差必须写在同一屏内 —— 否则这个数字会被当成线上指标引用
+            print(f"  {C.YELLOW}⚠ {esc['note']}{C.RESET}")
+        else:
+            print(f"  {C.YELLOW}{esc['verdict']}{C.RESET}")
+            print(f"  {C.DIM}{esc['note']}{C.RESET}")
+
+        if e.get("note"):
+            print(f"\n  {C.DIM}{e['note']}{C.RESET}")
+
     # --- 输出 JSON ---
     payload = {
         "meta": {
@@ -662,6 +728,10 @@ def main() -> int:
         "per_stratum": strat_report,
         "duplicate_detection": dup_report,
         "reliability": rel,
+        # ★ 新增字段（不改动任何已有字段）——
+        #   置信度校准是"转人工分流"能否成立的前提，必须跟着报告一起出去，
+        #   否则每次都要重新跑一遍才能看。
+        "calibration": cal,
         "memory_quality": mem_q,
         "memory_effect": mem_effect,
         # ★ 逐条数据必须存 —— 这是个真实缺陷的修复。
