@@ -3636,5 +3636,351 @@ class TestLongHorizonConsistency(unittest.TestCase):
                       "task 桶的内容不应被压缩或驱逐掉")
 
 
+class TestStatisticalFoundation(unittest.TestCase):
+    """统计地基 —— 显著性检验 / 校准 / 错误分类 / 多重比较。
+
+    ============================================================
+    这组测试守的是什么
+    ============================================================
+    这四块能力的共同点是：**算错了不会报错，只会给出一个看起来合理的数字**。
+    一个错的 p 值、一个错的分桶、一个错的归因，都会静默地影响结论。
+
+    所以这里全部用"**已知输入 → 已知输出**"：
+      · Wilcoxon 精确检验用可手算的小样本（n=5 → p=0.0625）
+      · McNemar 精确检验用可手算的二项（b=1,c=9 → 22/1024）
+      · ECE 用构造出来的完美校准/过度自信数据
+
+    这些值是**独立于实现**推出来的（手算/公式），
+    所以它们能真正发现实现错误 —— 而不是"实现改成什么就断言什么"。
+
+    ⚠️ 注意和"实验守卫"的区别：`TestCompareExperiment` 守的是**实验前提**
+       （样本覆盖、余量、生命周期对齐），本组守的是**统计计算本身**。
+    """
+
+    # ========================================================
+    # ① 配对显著性检验
+    # ========================================================
+
+    def test_配对bootstrap_同数据_p值为1(self):
+        """同一组数据和自己比较 → 差值为 0 → 不可能显著。
+
+        这是最基本的健全性检查：如果连这都判显著，说明重采样写错了。
+        Δ 全部为 0 时，中心化后仍是全 0，任何重采样都跨不过 0。
+        """
+        from nightwatch.eval.significance import paired_bootstrap
+
+        a = [0.5, 0.8, 0.3, 0.9, 0.6]
+        r = paired_bootstrap(a, list(a), n_boot=1000)
+        self.assertEqual(r["mean_delta"], 0.0)
+        self.assertGreater(r["p_value"], 0.99,
+                           f"同数据比较的 p 值应接近 1，实际 {r['p_value']}")
+        self.assertEqual(r["n"], 5, "应如实报告配对样本量")
+
+    def test_配对bootstrap_单向提升_置信区间不含0(self):
+        """b 组一致高于 a 组 → 提升明显，置信区间应整体在 0 以上。"""
+        from nightwatch.eval.significance import paired_bootstrap
+
+        a = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+        b = [x + 0.2 for x in a]
+        r = paired_bootstrap(a, b, n_boot=2000)
+        self.assertGreater(r["mean_delta"], 0.15)
+        self.assertGreater(r["ci_low"], 0.0,
+                           f"一致提升时 CI 下界应 > 0，实际 {r['ci_low']}")
+        self.assertLess(r["p_value"], 0.05)
+
+    def test_wilcoxon精确检验_已知答案(self):
+        """纯手算可验证的精确值 —— 这是最有判别力的一条。
+
+        n=5 全部为负：秩 1..5 全归 W−，W+ = 0，W = min(0, 15) = 0
+        精确双侧 p = 2 × P(W+ ≤ 0) = 2 × (1/2⁵) = 0.0625
+        n=6 同理 = 2/2⁶ = 0.03125
+
+        ★ 断言的是**精确值**而不是"小于某个数"——
+          否则实现里把 2ⁿ 写成 n² 也照样过。
+        """
+        from nightwatch.eval.significance import wilcoxon_signed_rank
+
+        r = wilcoxon_signed_rank([1, 2, 3, 4, 5], [0, 1, 2, 3, 4])
+        self.assertAlmostEqual(r["p_value"], 0.0625, places=6,
+                               msg="n=5 全负的精确双侧 p 应为 2/2^5 = 0.0625")
+
+        r = wilcoxon_signed_rank([1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 4, 5])
+        self.assertAlmostEqual(r["p_value"], 0.03125, places=6,
+                               msg="n=6 全负的精确双侧 p 应为 2/2^6 = 0.03125")
+
+    def test_wilcoxon_全零差值_如实报无差异(self):
+        """两次结果完全一样 → 数据里没有变异 → 任何 p 值都无意义。
+
+        ★ 这里断言的是"**方法字段如实说明检验不了**"，
+          而不是断言 p 等于某个数 —— 因为此时根本不存在有效的 p 值。
+          （一个假的显著/不显著结论比"不知道"更糟。）
+        """
+        from nightwatch.eval.significance import wilcoxon_signed_rank
+
+        r = wilcoxon_signed_rank([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+        self.assertIn("无差异", r["method"])
+        self.assertEqual(r["n"], 0, "全零差值应被剔除，n 归零")
+        self.assertEqual(r["n_zero"], 3, "应如实报告剔除了几对零差值")
+
+    def test_mcnemar_零翻转_无差异可检验(self):
+        """b=0, c=0：两版在所有样本上表现完全一致 → 不做检验。"""
+        from nightwatch.eval.significance import mcnemar
+
+        r = mcnemar(0, 0)
+        self.assertIn("无差异", r["method"])
+        self.assertEqual(r["n_discordant"], 0)
+
+    def test_mcnemar精确检验_已知答案(self):
+        """b=1, c=9 → H0 下 b ~ Binomial(10, 0.5)。
+
+        P(X ≤ 1) = (C(10,0) + C(10,1)) / 2¹⁰ = 11/1024
+        双侧 p = 2 × 11/1024 = 22/1024 = 0.021484375
+        """
+        from nightwatch.eval.significance import mcnemar
+
+        r = mcnemar(1, 9)
+        self.assertAlmostEqual(
+            r["p_value"], 22 / 1024, places=6,
+            msg="McNemar 精确双侧 p 应为 22/1024 ≈ 0.021484")
+        self.assertEqual(r["n_discordant"], 10,
+                         "有效样本量应为 b+c，不是总样本数")
+        # 完全对称的翻转 → 不显著
+        self.assertEqual(mcnemar(5, 5)["p_value"], 1.0)
+
+    def test_推荐检验_按指标类型分流(self):
+        """连续指标给 bootstrap/Wilcoxon，二元指标给 McNemar。
+
+        ★ 这条守的是"**别选错检验**"—— 选错比不做更糟：
+          配对数据用独立样本检验会白白损失统计功效。
+        """
+        from nightwatch.eval.significance import recommend_test
+
+        self.assertEqual(recommend_test("binary"), "mcnemar")
+        self.assertIn("paired_bootstrap", recommend_test("continuous"))
+        with self.assertRaises(ValueError):
+            recommend_test("我不知道")           # 未知类型必须报错，不能猜
+
+    # ========================================================
+    # ② 置信度校准
+    # ========================================================
+
+    def test_ece_完美校准为零(self):
+        """置信度 = 实际正确率 → 每个桶的偏离都是 0 → ECE = 0。
+
+        构造：10 条样本置信度全 0.5，恰好 5 条正确。
+        落在 [0.5, 0.6) 桶里：平均置信度 0.5、实际正确率 0.5 → 偏离 0。
+        """
+        from nightwatch.eval.calibration import ece
+
+        r = ece([0.5] * 10, [True] * 5 + [False] * 5)
+        self.assertEqual(r["ece"], 0.0,
+                         f"完美校准的 ECE 应为 0，实际 {r['ece']}")
+        self.assertEqual(r["mce"], 0.0)
+
+    def test_ece_过度自信_等于偏离值(self):
+        """说 0.9 但只对一半 → 偏离 |0.5 − 0.9| = 0.4（只有一个非空桶）。"""
+        from nightwatch.eval.calibration import ece
+
+        r = ece([0.9] * 10, [True] * 5 + [False] * 5)
+        self.assertAlmostEqual(r["ece"], 0.4, places=6,
+                               msg="过度自信 0.4 时 ECE 应恰为 0.4")
+        # gap 为负 = 过度自信（方向信息，ECE 本身取绝对值看不到）
+        non_empty = [b for b in r["bins"] if b["n"]]
+        self.assertEqual(len(non_empty), 1)
+        self.assertLess(non_empty[0]["gap"], 0.0,
+                        "gap 为负应表示过度自信")
+
+    def test_风险覆盖率_全对时是退化情况(self):
+        """整体错误率为 0 时不能说"置信度没有排序能力"。
+
+        ★ 这是实跑 Mock 数据时抓到的判据退化：
+          没有错误可分流时，AURC 必然也是 0 →
+          "AURC ≈ 整体错误率"会错误地推出"排序能力差"的结论。
+        """
+        from nightwatch.eval.calibration import risk_coverage_curve
+
+        r = risk_coverage_curve([0.9, 0.8, 0.7], [True, True, True])
+        self.assertEqual(r["overall_error"], 0.0)
+        self.assertIn("没有错误可供分流", r["verdict"],
+                      "全部正确时应说明无从评估，而不是断言排序能力差")
+
+    def test_转人工阈值_满足约束下覆盖最大(self):
+        """阈值目标 = 满足质量约束下**覆盖率最大**（不是准确率最大）。
+
+        构造：置信度降序的前 5 条全对，第 6 条开始出错。
+        min_accuracy=0.9 → 应保留 5 条、阈值 0.80。
+        ★ 若实现改成"准确率最大化"，会只保留 1 条 —— 那条会失败。
+        """
+        from nightwatch.eval.calibration import suggest_escalation_threshold
+
+        conf = [0.95, 0.92, 0.88, 0.85, 0.80, 0.60, 0.55, 0.50, 0.40, 0.30]
+        corr = [True, True, True, True, True,
+                False, False, False, False, False]
+        r = suggest_escalation_threshold(conf, corr, min_accuracy=0.9)
+        self.assertTrue(r["found"])
+        self.assertEqual(r["n_kept"], 5, "应保留满足约束的最大条数")
+        self.assertAlmostEqual(r["threshold"], 0.80, places=4)
+        self.assertEqual(r["n_escalated"], 5)
+        self.assertGreaterEqual(r["expected_accuracy"], 0.9)
+
+    def test_转人工阈值_找不到时如实报found为假(self):
+        """目标定得太高（准确率 100% 但存在错误）→ 如实报找不到。
+
+        ★ 关键契约：找不到时 `threshold` 必须是 None，
+          **不能**随便返回一个"最接近的"值 —— 那会让调用方以为找到了。
+        """
+        from nightwatch.eval.calibration import suggest_escalation_threshold
+
+        conf = [0.9, 0.8, 0.7, 0.6]
+        # ★ 最自信的那条也错 —— 否则 k=1（只留最自信的 1 条）就满足了 100%，
+        #   那就成了"找得到切点"，测不到本用例要测的分支。
+        corr = [False, True, False, False]
+        r = suggest_escalation_threshold(conf, corr, min_accuracy=1.0)
+        self.assertFalse(r["found"])
+        self.assertIsNone(r["threshold"],
+                          "找不到切点时必须返回 None，不能给近似值")
+        self.assertIn("找不到", r["verdict"])
+
+    # ========================================================
+    # ③ 错误分类
+    # ========================================================
+
+    @staticmethod
+    def _test_coarsen(label):
+        """测试用的粗化函数（模拟评测侧的 to_coarse）。
+
+        ★ 为什么在测试里自带一个而不用真实的 `to_coarse`：
+          taxonomy 模块的契约就是"由调用方提供 coarsen"，
+          单元测试应当直接验证这个契约，不依赖另一个脚本的导入。
+        """
+        m = {"ci": "Build", "bld": "Build", "build": "Build",
+             "bug": "Bug", "depr": "Deprecate", "enh": "Enhancement"}
+        return m.get(str(label).strip().lower())
+
+    def test_错误分类_三条真实种子用例(self):
+        """项目里三条**真实发生过**的错误，各自对应一个类别。
+
+        这三条不是编出来的：
+          #70257  DEPR 前缀不在词表 → knowledge_gap
+          #70811  被正文 Feature 模板误导 → reasoning_error
+          CI/BLD  映射缺失（模型输出了 CI，评测丢了）→ evaluation_bug
+
+        ★ 第二条最关键：knowledge_gap 和 evaluation_bug 都是"错了"，
+          区分它们的判据是"**原始预测里有没有正确信号的线索**"，
+          而不是"预测对不对"。判错了就会把评测的锅记到模型头上。
+        """
+        from nightwatch.eval.error_taxonomy import (
+            classify_error, ErrorCategory)
+
+        # ① 词表里没有 depr → 模型没渠道知道
+        c1 = classify_error(
+            ["Enhancement"], ["Deprecate"],
+            {"title": "DEPR: setting a 2-D value into a series",
+             "known_prefixes": {"bug", "enh", "doc", "tst", "ref"},
+             "coarsen": self._test_coarsen})
+        self.assertEqual(c1, ErrorCategory.KNOWLEDGE_GAP)
+
+        # ② 前缀认识、但正文模板把结论带偏
+        c2 = classify_error(
+            ["Enhancement"], ["Bug"],
+            {"title": "BUG: Series.str.replace with regex=False fails",
+             "body": "Bug Type: [x]  Feature Type: [x] New feature",
+             "known_prefixes": {"bug", "enh", "ci", "bld", "depr"},
+             "coarsen": self._test_coarsen,
+             "distractors": ["Feature Type", "Bug Type"]})
+        self.assertEqual(c2, ErrorCategory.REASONING_ERROR)
+
+        # ③ 原始预测里有 CI（能对应到 Build），最终预测却空了
+        c3 = classify_error(
+            [], ["Build"],
+            {"title": "CI: pixi-version is pinned in three places",
+             "known_prefixes": {"bug", "enh", "ci", "bld"},
+             "coarsen": self._test_coarsen,
+             "predicted_raw": ["CI", "config", "dependency"]})
+        self.assertEqual(c3, ErrorCategory.EVALUATION_BUG,
+                         "原始预测里已有正确信号却丢了 → 是评测侧的锅")
+
+    def test_错误分类_优先级顺序(self):
+        """流程失败 > 到底错没错 > 评测的锅 > 知识与推理。
+
+        ★ 顺序不是随意的：**必须先排除评测侧的锅，再去说模型的不是**。
+          否则会把评测的 bug 记在模型头上，然后照着错误方向优化模型。
+        """
+        from nightwatch.eval.error_taxonomy import (
+            classify_error, ErrorCategory)
+
+        # 工具失败压过一切（哪怕预测碰巧是对的）
+        self.assertEqual(
+            classify_error(["Bug"], ["Bug"], {"error": "TimeoutError"}),
+            ErrorCategory.TOOL_FAILURE)
+        # 预测命中 → no_error（先确认"到底错没错"）
+        self.assertEqual(classify_error(["Bug"], ["Bug"], {}),
+                         ErrorCategory.NO_ERROR)
+        # gold 存疑时也算 no_error（那是数据问题，不是模型问题）
+        self.assertEqual(
+            classify_error(["Bug"], ["Docs"], {"gold_suspect": True}),
+            ErrorCategory.NO_ERROR)
+
+    def test_分类报告_按责任归属聚合(self):
+        """报告必须把"模型的问题"和"评测的问题"分开计数。
+
+        ★ 这条守的是**行动方向**：
+          "错了 4 条"会让人去调模型；
+          "3 条是评测的锅"才会让人去修映射表。
+        """
+        from nightwatch.eval.error_taxonomy import (
+            classify_error_detailed, taxonomy_report, ErrorCategory)
+
+        verdicts = [
+            classify_error_detailed([], ["Build"],
+                                    {"coarsen": self._test_coarsen,
+                                     "predicted_raw": ["CI"]}),
+            classify_error_detailed([], ["Build"],
+                                    {"coarsen": self._test_coarsen,
+                                     "predicted_raw": ["BLD"]}),
+            classify_error_detailed(["Enhancement"], ["Bug"],
+                                    {"title": "BUG: x",
+                                     "known_prefixes": {"bug"},
+                                     "coarsen": self._test_coarsen}),
+        ]
+        rep = taxonomy_report(verdicts)
+        self.assertEqual(rep["样本量"], 3)
+        self.assertIn("评测（与模型无关）", rep["责任归属聚合"])
+        self.assertEqual(rep["责任归属聚合"]["评测（与模型无关）"], 2,
+                         "两条 evaluation_bug 应聚到「评测」名下")
+        # 小样本提示必须出现（延续项目一贯的纪律）
+        self.assertIn("参考", rep["提示"])
+
+    # ========================================================
+    # ④ 多重比较
+    # ========================================================
+
+    def test_多重比较_单候选无需校正(self):
+        """只比了 1 个候选就不存在多重比较问题 —— 不该吓唬人。"""
+        from nightwatch.eval.significance import bonferroni_note
+
+        note = bonferroni_note(1)
+        self.assertIn("不存在多重比较问题", note)
+
+    def test_多重比较_多候选给出校正阈值(self):
+        """k 个候选 → 单次显著性阈值应降到 α/k。
+
+        ★ 同时必须提醒"**校正不解决选择偏差**"——
+          这是比门槛更根本的问题：最优值仍是在同一批数据上挑的。
+          只给 α/k 而不说这句，读者会以为做完校正就万事大吉了。
+        """
+        from nightwatch.eval.significance import bonferroni_note
+
+        note = bonferroni_note(18, alpha=0.05)
+        self.assertIn("18", note)
+        self.assertIn("0.00278", note.replace("α/k = 0.05/18 = ", ""),
+                      "应给出 0.05/18 ≈ 0.00278 的校正阈值")
+        self.assertIn("选择偏差", note)
+        self.assertIn("独立数据", note, "必须指向「复验」这个真正的解法")
+
+        with self.assertRaises(ValueError):
+            bonferroni_note(0)          # 比较次数不能为 0
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
