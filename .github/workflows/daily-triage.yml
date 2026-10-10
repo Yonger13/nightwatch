@@ -135,14 +135,45 @@ jobs:
           NW_MODEL_MEDIUM: qwen3.8-flash
           NW_MODEL_SMALL: qwen3.8-flash
         run: |
-          python scripts/daily_triage.py --once --limit 20
+          # ★ 用 tee 把输出同时存一份到文件 —— 为了让它进 artifact。
+          #
+          # ============================================================
+          # 为什么要存下来：**原始日志（log archive）拿不到**
+          # ============================================================
+          # GitHub 的"原始日志"是从
+          #   results-receiver.actions.githubusercontent.com
+          # 下载的（/actions/runs/{id}/logs 会 302 到那里）。
+          # 实测：该域名 DNS 能解析，但 **TLS 握手失败** ——
+          # 在某些网络环境（公司网络 / 代理白名单 / 国内部分线路）连不上。
+          # 而 **artifact 走的是另一个域名，是通的**。
+          #
+          # 所以：想让"这一轮预测了哪几条、给出了什么标签"被程序读到，
+          # **就不能只依赖原始日志**，要把它落成 artifact。
+          #
+          # ============================================================
+          # ⚠️ `set -o pipefail` 不能省 —— 否则失败会被静默吞掉
+          # ============================================================
+          # 管道的退出码默认是**最后一个命令**（这里是 tee）的退出码。
+          # 所以 `python ... | tee f` 里，就算 python 崩了，
+          # 只要 tee 成功，这一步照样**显示绿色**。
+          #
+          # 而这正是本项目反复批评的那类问题：**失败不报错，只是结果不对**。
+          # 加了 pipefail 之后，管道里任何一环失败都会让这一步变红。
+          set -o pipefail
+          python scripts/daily_triage.py --once --limit 20 2>&1 | tee triage_run.txt
 
       - name: 输出状态报告
         if: always()
         run: |
+          # ★ 同样要 pipefail —— 否则 `--status` 崩了也显示绿色，
+          #   而 status.txt 会是空的/残缺的，读的人以为"这轮没数据"。
+          set -o pipefail
           python scripts/daily_triage.py --status | tee status.txt
           # 记忆时效性：看看有没有该复核的记忆（反馈闭环的产出）
           if [ -f data/memory.db ]; then
+            # 这里的 `|| true` 是**故意的** —— 复核工具失败不该让整步变红
+            # （它是附加信息，不是主产出）。和上面那处 pipefail 不冲突：
+            # 那是"主产出不许静默失败"，这是"附加信息允许失败"。
             python scripts/review_stale.py --db data/memory.db --stats 2>&1 | tee -a status.txt || true
           fi
 
@@ -165,5 +196,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: triage-status-${{ github.run_number }}
-          path: status.txt
+          # ★ 两个文件都要传：
+          #   status.txt      —— 状态摘要（累计预测/对账/记忆时效）
+          #   triage_run.txt  —— **本轮的完整输出**（预测了哪几条 issue、
+          #                      给了什么标签）← 这个才是"日志"的替代品
+          #   原因见上面"跑一轮分诊"步骤里的说明：原始日志在某些网络下拿不到，
+          #   artifact 才是可靠通道。
+          path: |
+            status.txt
+            triage_run.txt
+          # ★ 加上 if-no-files-found: warn —— 默认行为是 warn，
+          #   但这里显式写出来，因为"artifact 里少了 triage_run.txt"
+          #   **不会有任何报错**，只会让下游少拿到信息（又一类静默失效）。
+          if-no-files-found: warn
           retention-days: 30

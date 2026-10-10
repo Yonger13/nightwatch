@@ -29,12 +29,35 @@
 
 ## 二、三步操作（10 分钟）
 
-### 第 1 步：在 GitHub 建**私有**仓库
+### 第 1 步：在 GitHub 建仓库（公开或私有都可以）
 
-仓库名建议 `nightwatch`。**设为 Private**（不公开代码）。
+仓库名建议 `nightwatch`。
 
-**Actions 在私有仓库同样可用**：免费额度 2000 分钟/月，
-本任务每天约 5~25 分钟 → 够用。
+**★ 公开 vs 私有：取舍在哪**（2026-10-10 更新，本项目已改为公开）
+
+| | 公开 | 私有 |
+|---|---|---|
+| **Actions 额度** | **无限** | 2000 分钟/月（免费版） |
+| **运行日志** | **全网可见** | 仅协作者可见 |
+| **artifact** | **全网可下载** | 仅协作者 |
+| **源码** | 全网可见 | 仅协作者 |
+
+**这个任务每天约 5~25 分钟** —— 私有仓库的 2000 分钟/月其实也够用。
+所以选哪个主要看**你愿不愿意让代码和日志公开**，而不是额度。
+
+**★ 如果选公开：日志和 artifact 也会公开 —— 所以推送前必须扫一遍密钥。**
+好消息是 GitHub 会自动把 `secrets.*` 在日志里掩码成 `***`
+（本项目实测：`NW_GITHUB_TOKEN: ***`、`NW_LLM_API_KEY: ***`），
+但**硬编码在代码里的密钥不会被掩码** —— 那才是要自己查的。
+
+**公开前的自查**（本项目实际用过的三步）：
+1. `git log --all --pretty=format: --name-only | sort -u` —— 看历史里有没有 `.env`
+2. 用 `.env` 里的**真实值**去比对全部历史与工作区（不只是看文件名）
+3. 扫通用模式：`ghp_` / `github_pat_` / `sk-` / `AKIA` / 私钥头
+
+⚠️ 第 2 步有个坑：**模型名和密钥长得很像**。本项目初扫时 73 处命中里
+72 处是误报 —— 模型名 `qwen3.8-flash` 同时出现在 `.env` 和代码里，
+但它不是密钥。**扫密钥时要把非密钥的配置项排除掉**，否则一屏红字会淹没真问题。
 
 ### 第 2 步：推代码
 
@@ -98,6 +121,70 @@ git ls-files --cached | findstr /I ".env"    # 应该只看到 .env.example
 
 ---
 
+## 三点五、★ 怎么把"日志"拿出来给程序读（2026-10-10 补）
+
+**结论：用 artifact，别依赖原始日志。**
+
+### 原始日志为什么不可靠
+
+GitHub 的"Download log archive"（`/actions/runs/{id}/logs`）会 **302 重定向**到：
+
+```
+results-receiver.actions.githubusercontent.com
+```
+
+实测（2026-10-10）：该域名 **DNS 能解析**（→ 140.82.112.22），
+但 **TLS 握手失败**（curl exit 35 / HTTP 000）。
+
+| 域名 | 可达性 |
+|---|---|
+| `api.github.com` | ✅ 0.49s |
+| `objects.githubusercontent.com` | ✅ 0.65s |
+| `results-receiver.actions.githubusercontent.com` | ❌ **连不上** |
+
+→ 在**代理白名单 / 公司网络 / 部分国内线路**下，原始日志根本下载不了，
+而 **artifact 走的是另一个域名，是通的**。
+
+### 所以 workflow 里加了这两处
+
+1. **`跑一轮分诊` 步骤把输出同时写进文件**
+   ```yaml
+   set -o pipefail
+   python scripts/daily_triage.py --once --limit 20 2>&1 | tee triage_run.txt
+   ```
+2. **artifact 传两个文件**：`status.txt`（状态摘要）+ `triage_run.txt`（**本轮完整输出**）
+
+于是"这一轮预测了哪几条、给了什么标签"就落在 artifact 里，
+可以用 API 直接拉：
+
+```bash
+# 列出运行
+curl -H "Authorization: Bearer $TOKEN" \
+  https://api.github.com/repos/<owner>/<repo>/actions/runs
+
+# 列出某次的 artifact
+curl -H "Authorization: Bearer $TOKEN" \
+  https://api.github.com/repos/<owner>/<repo>/actions/runs/<run_id>/artifacts
+
+# 下载（★ 这个端点走得通）
+curl -L -H "Authorization: Bearer $TOKEN" -o a.zip \
+  https://api.github.com/repos/<owner>/<repo>/actions/artifacts/<artifact_id>/zip
+```
+
+### ⚠️ `set -o pipefail` 不能省 —— 否则失败会被静默吞掉
+
+管道的退出码默认取**最后一个命令**（`tee`）的退出码。实测：
+
+```
+不加：python 崩了 → 管道退出码 0   ← 这一步照样显示绿色！
+加了：python 崩了 → 管道退出码 1   ← 正确变红
+```
+
+**这正是本项目反复批评的那类问题：失败不报错，只是结果不对。**
+加了 `tee` 却不加 `pipefail`，等于用一个静默失效换来了一个 artifact。
+
+---
+
 ## 四、之后会发生什么
 
 ```
@@ -109,6 +196,20 @@ git ls-files --cached | findstr /I ".env"    # 应该只看到 .env.example
             ↓
             误诊率高的记忆 → 进复核队列（等你裁决）
 ```
+
+> ⚠️ **2026-10-10 观察：定时（`schedule`）从来没有触发过。**
+> ```
+> 运行总数 2，事件分类 {'workflow_dispatch': 2}   ← 两条都是手动
+> workflow state = active（没被禁用）
+> ```
+> cron 是 `17 2 * * *` = 北京时间 10:17，但截至 10-10 13:30
+> **没有产生过任何 `event=schedule` 的运行**。
+>
+> **待办**：观察明天 10:17 是否触发。
+> 如果还是不触发 → "每天自动跑"这个目标没达成，需要单独排查
+> （候选原因：新仓库的调度器延迟 / cron 被延迟数小时 / 仓库活跃度）。
+> **别把"手动能跑通"当成"每天会自动跑"** —— 这是两件事。
+
 
 **两周后你会得到**：
 - 一份 `predictions` 表（每天新增的预测 + 对账结果）
