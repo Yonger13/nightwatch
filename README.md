@@ -41,7 +41,7 @@ python scripts/run_demo.py
 
 跑测试：
 ```bash
-python scripts/run_tests.py        # 150 个用例
+python scripts/run_tests.py        # 170 个用例
 ```
 
 跑完整评测：
@@ -96,7 +96,7 @@ nightwatch/
 │       ├── doe.py             ★ 实验设计（L9 正交 + 主效应 + 帕累托 + 多目标推荐）
 │       └── poison.py          ★ 记忆污染注入（5 类污染 + 暴露追踪 + 纠正）
 ├── scripts/                   26 个脚本（见下表）
-├── tests/test_smoke.py        150 个用例
+├── tests/test_smoke.py        170 个用例
 ├── experiments/               框架对照实验（用 langgraph，主项目不受影响）
 ├── docs/                      13 份文档（见"文档"一节）
 └── data/                      评测输出（运行时生成）
@@ -107,7 +107,7 @@ nightwatch/
 | 脚本 | 用途 |
 |---|---|
 | `run_demo.py` | 三段核心演示（记忆效果 / 循环检测 / 上下文卸载） |
-| `run_tests.py` | 测试入口（141 个） |
+| `run_tests.py` | 测试入口（170 个） |
 | `run_eval.py` | 完整评测（分层报告 + 多口径 + 记忆对照） |
 | `run_longhorizon.py` | 长程一致性压测 |
 | `collect_issues.py` | 第 0 周：采集真实 issue + 观察统计 |
@@ -228,7 +228,7 @@ Gartner 把「用 50+ 工具的通用 Agent」点名为失败模式。所以工�
 
 **工程保障**
 
-- ✅ **测试**：150 个用例全部通过
+- ✅ **测试**：170 个用例全部通过
 - ✅ **数据采集**：真实 issue 采集 + 第 0 周观察统计
 - ✅ **长程一致性压测**：约束遵守率的对照实验 + 实验有效性检查
 

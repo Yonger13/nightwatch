@@ -91,6 +91,62 @@ def rate(rows: list[dict]) -> tuple[int, int, float]:
     return h, len(rows), h / len(rows)
 
 
+def f1_change_buckets(before: dict, after: dict,
+                      ids: list) -> tuple[list, list, int]:
+    """按 **F1 口径**把样本分成 (提升, 下降, 无变化)。
+
+    ========================================================================
+    ★ 为什么需要一个单独的函数，而不是就地写在 main() 里
+    ========================================================================
+    两个理由：
+
+      ① **可测**。这条逻辑要守住的东西很具体 —— "命中口径看不见的回归，
+         F1 口径要看得见" —— 而这类判断一旦错了是**静默**的：
+         报告照样生成、数字照样好看，只是漏报了一条降级。
+         所以它必须能被单元测试直接调用。
+
+      ② **单一实现**。第三项统计（结论段的"两个口径各自的变差数"）
+         和明细列表用的是同一份判断。就地写两遍 = 又一个"同一件事
+         两份实现"（这个项目已经踩过四次）。
+
+    参数
+    ----
+    before, after : `{issue_id: 记录}`，记录里要有 `predicted` / `gold`
+    ids           : 要比对的 issue id 列表（通常是两版的交集）
+
+    返回
+    ----
+    `(gains, drops, n_same)`
+      gains / drops 是 `[(issue_id, f1_before, f1_after), ...]`
+
+    ========================================================================
+    为什么阈值用 1e-9 而不是 != 0
+    ========================================================================
+    F1 是浮点算出来的（分子分母都是整数，但会做除法），
+    理论上相等的两个值可能在末位有差异。用 `abs(delta) < 1e-9` 判"无变化"，
+    几率的量级上足够安全，同时不会把真实的微小变化误判成相等。
+
+    ========================================================================
+    为什么不用集合严格相等来判断"有没有变差"
+    ========================================================================
+    因为**"多打了标签"型回归恰恰是 Top-1 仍然正确的那种** ——
+    用集合相等（`exact`）会把"多打一个标签"和"少打一个标签"都算成变化，
+    而我们要单独盯住的是**下降**（F1 变小），不是"变了"。
+    """
+    gains, drops, n_same = [], [], 0
+    for i in ids:
+        fb = Metrics.label_f1(before[i]["predicted"], before[i]["gold"])[2]
+        fa = Metrics.label_f1(after[i]["predicted"], after[i]["gold"])[2]
+        delta = fa - fb
+        if abs(delta) < 1e-9:
+            n_same += 1
+        elif delta > 0:
+            gains.append((i, fb, fa))
+        else:
+            drops.append((i, fb, fa))
+    return gains, drops, n_same
+
+
 def main() -> int:                                          # noqa: C901
     ap = argparse.ArgumentParser(description="前瞻验证前后对比")
     ap.add_argument("--before", default=str(ROOT / "data" / "prospective_eval.json"))
@@ -167,6 +223,50 @@ def main() -> int:                                          # noqa: C901
             print(f"    {i:<10}{str(after[i]['predicted']):<24}"
                   f"真实={after[i]['gold'][0]}　{after[i]['title'][:34]}")
 
+    # ---------------------------------------------------------- F1 口径的回归
+    #
+    # ★★ 上面那段"逐条变化"按 **hit** 比对，有一个盲区 ★★
+    #
+    # hit 只问"Top-1 对不对"。所以一条样本如果**多打了标签**，
+    # 只要 Top-1 仍然正确，hit 就是 True → 落在"一直正确"里 →
+    # 归入"没有任何类别变差"。**而它的 F1 其实掉了。**
+    #
+    # 真实例证（data/prospective_eval.json vs _v2.json 的 #68433）：
+    #     v1  ['Enhancement']           F1 = 1.000   hit = True
+    #     v2  ['Enhancement', 'Build']  F1 = 0.667   hit = True   ← 多打一个标签
+    # hit 口径看不见它；F1 口径看得见。
+    #
+    # 所以两个口径**都要报各自的"变差数"**，而不是只报一个。
+    # 只报 hit 的 0 条会让人以为"修复零副作用"，而事实上有一条降级了 ——
+    # 这正是本项目一贯警惕的那类问题：**单一口径会掩盖结构**。
+    # 逻辑收在 `f1_change_buckets()` 里（模块级纯函数）——
+    # 这样它能被单元测试直接调用，也能被下面结论段复用同一份判断。
+    f1_b = [Metrics.label_f1(r["predicted"], r["gold"])[2] for r in b_rows]
+    f1_a = [Metrics.label_f1(r["predicted"], r["gold"])[2] for r in a_rows]
+
+    f1_gains, f1_drops, f1_same = f1_change_buckets(before, after, common)
+
+    print(f"\n  {C['bold']}F1 口径的逐条变化（hit 口径看不见「多打标签」型回归）{C['reset']}")
+    print(f"""
+    F1 提升   （delta > 0）   {len(f1_gains)} 条   合计 {sum(f - b for _, b, f in f1_gains):+.4f}
+    F1 下降   （delta < 0）   {len(f1_drops)} 条   合计 {sum(f - b for _, b, f in f1_drops):+.4f}
+    无变化                    {f1_same} 条""")
+
+    if f1_drops:
+        print(f"\n  {C['red']}⚠ F1 下降的明细（hit 口径看不到，必须逐条检查）{C['reset']}")
+        print(f"\n    {'issue':<10}{'F1 前':>8}{'F1 后':>8}{'delta':>9}  "
+              f"{'hit':<12}{'预测变化'}")
+        print(f"    {'-' * 84}")
+        for i, fb, fa in f1_drops:
+            hb = "✓" if before[i]["hit"] else "✗"
+            ha = "✓" if after[i]["hit"] else "✗"
+            note = ("  ← hit 没变，只有 F1 掉了" if hb == ha else "")
+            print(f"    {i:<10}{fb:>8.3f}{fa:>8.3f}{fa - fb:>+9.3f}  "
+                  f"{hb} → {ha:<8}"
+                  f"{str(before[i]['predicted'])} → {str(after[i]['predicted'])}{note}")
+    else:
+        print(f"\n  {C['green']}✓ F1 口径下也没有任何条目下降{C['reset']}")
+
     # ---------------------------------------------------------- 显著性检验
     #
     # ★ 上面的"命中率 93.4% → 100%"只说了**提升了多少**，
@@ -174,10 +274,8 @@ def main() -> int:                                          # noqa: C901
     #   完全可能是随机波动。不检验的话，"提升"这两个字没有依据。
     hr("显著性检验（这个提升是真的吗）")
 
-    # 逐条算 F1 —— 这是连续口径；命中与否是二元口径
-    f1_b = [Metrics.label_f1(r["predicted"], r["gold"])[2] for r in b_rows]
-    f1_a = [Metrics.label_f1(r["predicted"], r["gold"])[2] for r in a_rows]
-
+    # f1_b / f1_a 已在上面算过（F1 口径回归检测要用），这里直接复用 ——
+    # 不重算一遍（"同一件事两份实现"是这个项目踩过四次的坑）。
     boot = paired_bootstrap(f1_b, f1_a)
     # b = 修复前对、修复后错（变差的）；c = 修复前错、修复后对（修好的）
     # ★ 这两个数就是上面"逐条变化"里已经数出来的 broke / fixed ——
@@ -311,6 +409,17 @@ def main() -> int:                                          # noqa: C901
                   显著性：F1 口径 p = {boot['p_value']:.4f}（{boot['mean_delta']:+.4f}，
                   95% CI [{boot['ci_low']:+.4f}, {boot['ci_high']:+.4f}]）；
                   命中口径 b+c = {mcn['n_discordant']}，p = {mcn['p_value']:.4f}
+
+  {C['bold']}两个口径各自的「变差数」（必须分开报）{C['reset']}
+
+    命中口径（Top-1 对不对）    变差 {len(broke)} 条
+    F1 口径（标签集合的匹配度）  变差 {len(f1_drops)} 条{'' if len(f1_drops) == len(broke) else '   ← 两个数不一样'}
+
+    {C['dim']}★ 为什么不能只报一个：hit 只问"Top-1 对不对"，
+      所以"多打了标签"型回归（Top-1 仍对、F1 下降）它**看不见**。
+      只报命中口径的 {len(broke)} 条会让人以为"修复零副作用"，
+      而 F1 口径下实际有 {len(f1_drops)} 条降级了。
+      **换一个合理口径就露出来的东西，说明它一直在那里。**{C['reset']}
 
   {C['dim']}★ 第 ② 步里"顺带发现的更深问题"才是这个项目一贯的模式：
     修一个问题时，往往会暴露出更深的一层。{C['reset']}

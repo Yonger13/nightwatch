@@ -3982,5 +3982,126 @@ class TestStatisticalFoundation(unittest.TestCase):
             bonferroni_note(0)          # 比较次数不能为 0
 
 
+class TestF1RegressionDetection(unittest.TestCase):
+    """F1 口径的回归检测 —— 守住「命中口径看不见的那类降级」。
+
+    ============================================================
+    为什么需要这组测试
+    ============================================================
+    真实数据里的 `#68433`：
+
+        v1  ['Enhancement']            F1 = 1.000    hit = True
+        v2  ['Enhancement', 'Build']   F1 = 0.667    hit = True
+
+    **hit 两次都是 True** —— 所以按命中口径统计的"变差"是 **0 条**，
+    报告会说"没有任何类别变差，修复是净改进"。
+    而 F1 口径下它是实打实的一条**降级**（多打了标签 → 精确率下降）。
+
+    ★ 这类漏报是**静默**的：报告照常生成、数字照常好看，
+      只是有一条降级被算进了"一直正确"。所以必须有测试盯着它。
+
+    ★ 测试用的是 `#68433` 的**真实构造**（不是编的），
+      这样它同时充当"这个已知案例不许回归"的守卫。
+    """
+
+    @staticmethod
+    def _load_script():
+        """导入 scripts/compare_prospective.py。
+
+        用 `sys.path` + 普通 `import`，**不用**
+        `importlib.util.spec_from_file_location` ——
+        后者加载的模块不注册进 `sys.modules`，
+        会让 dataclass / 类型注解解析出问题
+        （这个坑 `TestCompareExperiment` 里已经记过一次）。
+        """
+        import importlib
+        from pathlib import Path
+        scripts_dir = Path(__file__).resolve().parents[1] / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        return importlib.import_module("compare_prospective")
+
+    def test_F1口径能发现命中口径看不见的回归(self):
+        """`#68433` 构造：hit 两次都是 True，但 F1 从 1.000 掉到 0.667。
+
+        ★ 关键断言有两条：
+          ① F1 口径把它算成 **1 条下降**（而不是"无变化"）
+          ② 它的 `hit` 确实两次都为 True —— 证明这条回归
+             **按命中口径是漏报的**，而不是测试构造错了
+        """
+        mod = self._load_script()
+        before = {"#68433": {"predicted": ["Enhancement"],
+                             "gold": ["Enhancement"], "hit": True}}
+        after = {"#68433": {"predicted": ["Enhancement", "Build"],
+                            "gold": ["Enhancement"], "hit": True}}
+
+        gains, drops, n_same = mod.f1_change_buckets(before, after, ["#68433"])
+
+        self.assertEqual(len(drops), 1,
+                         "多打一个标签导致的 F1 下降必须被算成「下降」")
+        self.assertEqual(len(gains), 0)
+        self.assertEqual(n_same, 0, "不能因为 F1 变化不大就归到「无变化」")
+
+        issue_id, fb, fa = drops[0]
+        self.assertEqual(issue_id, "#68433")
+        self.assertAlmostEqual(fb, 1.0, places=4)
+        self.assertAlmostEqual(fa, 2 / 3, places=4,
+                               msg="多打一个标签时 F1 应为 2/3")
+        # ★ 同时验证"命中口径会漏掉它"—— 否则这条测试的前提不成立
+        self.assertTrue(before["#68433"]["hit"] and after["#68433"]["hit"],
+                        "hit 两次都为 True，命中口径的「变差」统计会漏掉这条")
+
+    def test_F1口径_三种变化各自归类不混淆(self):
+        """提升 / 下降 / 无变化 必须分到三个桶里，且互不重叠。
+
+        构造三种典型情况：
+          · 0 → 1       完全修好          → 提升
+          · 0.667 → 1   少打了一个标签    → 提升
+          · 1 → 0.667   多打了一个标签    → 下降  ★ 与上一条方向相反
+          · 1 → 1       没变              → 无变化
+        """
+        mod = self._load_script()
+        before = {
+            "#fixed": {"predicted": [], "gold": ["Bug"], "hit": False},
+            "#trim": {"predicted": ["Docs", "Deprecate"], "gold": ["Docs"], "hit": True},
+            "#over": {"predicted": ["Docs"], "gold": ["Docs"], "hit": True},
+            "#same": {"predicted": ["Build"], "gold": ["Build"], "hit": True},
+        }
+        after = {
+            "#fixed": {"predicted": ["Bug"], "gold": ["Bug"], "hit": True},
+            "#trim": {"predicted": ["Docs"], "gold": ["Docs"], "hit": True},
+            "#over": {"predicted": ["Docs", "Bug"], "gold": ["Docs"], "hit": True},
+            "#same": {"predicted": ["Build"], "gold": ["Build"], "hit": True},
+        }
+        ids = ["#fixed", "#trim", "#over", "#same"]
+        gains, drops, n_same = mod.f1_change_buckets(before, after, ids)
+
+        self.assertEqual(sorted(i for i, _, _ in gains), ["#fixed", "#trim"],
+                         "0→1 和「少打标签」都是提升")
+        self.assertEqual([i for i, _, _ in drops], ["#over"],
+                         "「多打标签」是下降，不能与「少打标签」混为一谈")
+        self.assertEqual(n_same, 1, "完全没变的只有 #same")
+        # 三条互斥且合计等于总数 —— 防止分类逻辑漏掉或重复计入
+        self.assertEqual(len(gains) + len(drops) + n_same, len(ids),
+                         "三个桶必须互斥且完备（合计 = 样本总数）")
+
+    def test_F1口径_完全相同的两版不报任何变化(self):
+        """同一份数据和自己比 → 全部归「无变化」，不能凭空报出回归。
+
+        ★ 这是最基本的健全性检查：如果连"和自己比"都报变差，
+          说明比对逻辑拿错了数据（比如 id 没对齐）。
+        """
+        mod = self._load_script()
+        snap = {
+            "#a": {"predicted": ["Bug"], "gold": ["Bug"], "hit": True},
+            "#b": {"predicted": [], "gold": ["Docs"], "hit": False},
+            "#c": {"predicted": ["Docs", "Bug"], "gold": ["Docs"], "hit": True},
+        }
+        import copy
+        gains, drops, n_same = mod.f1_change_buckets(snap, copy.deepcopy(snap),
+                                                     list(snap))
+        self.assertEqual((len(gains), len(drops), n_same), (0, 0, 3))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
