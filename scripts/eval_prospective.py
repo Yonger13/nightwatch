@@ -51,6 +51,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from nightwatch.config import load_settings                        # noqa: E402
+from nightwatch.eval.error_taxonomy import (                       # noqa: E402
+    classify_error_detailed, taxonomy_report,
+)
 from nightwatch.llm.client import build_llm                        # noqa: E402
 from nightwatch.loop.react import TriageAgent                      # noqa: E402
 from nightwatch.memory.store import HashEmbedding, MemoryStore     # noqa: E402
@@ -329,7 +332,10 @@ def main() -> int:                                          # noqa: C901
     ap.add_argument("--limit", type=int, default=0, help="只跑前 N 条")
     ap.add_argument("--mock", action="store_true", help="用 Mock（快速验证流程）")
     ap.add_argument("--real-llm", action="store_true", help="用真实模型")
-    ap.add_argument("--save", default=str(ROOT / "data" / "prospective_eval.json"))
+    ap.add_argument("--save", default=None,
+                    help="结果输出路径。不指定时按模式自动选择 —— "
+                         "真实模型 → data/prospective_eval.json；"
+                         "Mock → data/_prospective_eval_mock.json")
     ap.add_argument("--report-only", action="store_true",
                     help="不跑预测，直接用已有结果出报告")
     args = ap.parse_args()
@@ -347,7 +353,27 @@ def main() -> int:                                          # noqa: C901
         records = records[:args.limit]
 
     real = args.real_llm and not args.mock
-    out_path = Path(args.save)
+
+    # ★★ 默认输出路径**按模式分开** —— 这是一个真实踩过的坑 ★★
+    #
+    # 原来 `--save` 的默认值固定指向 `data/prospective_eval.json`，
+    # 于是 `--mock`（用于快速验证流程）会**直接覆盖正式评测数据**。
+    #
+    # 后果很隐蔽：跑完 `--mock` 一切正常、报告照出、退出码 0，
+    # 但正式的那份 v1 结果已经被 Mock 结果替换掉了。
+    # 直到下次跑 `compare_prospective.py` 才会发现
+    # "v1 命中率怎么从 93.4% 变成了 8.2%" —— 而此时原始数据已经没了。
+    #
+    # 这类问题正是本项目一贯关注的那一类：
+    # **不报错，只是把东西弄坏了。** 而 `--mock` 恰好是文档里推荐的
+    # "快速验证"入口 —— 也就是说这个坑是**推荐用法必然会踩到的**。
+    #
+    # Mock 的输出改用 `_` 前缀（本项目惯例：`_` 前缀 = 临时产物，见 .gitignore）。
+    if args.save:
+        out_path = Path(args.save)
+    else:
+        out_path = ROOT / "data" / (
+            "prospective_eval.json" if real else "_prospective_eval_mock.json")
 
     # ---------------------------------------------------------- 跑预测
     if not args.report_only:
@@ -453,16 +479,102 @@ def main() -> int:                                          # noqa: C901
     # 混淆矩阵（如果预测里有错的）
     hr("错误明细（人工可核对）")
     wrong = [r for r in results if not r["hit"]]
+    verdicts = []
     if not wrong:
         print(f"  {C['green']}全部命中{C['reset']}")
     else:
-        print(f"\n  {'issue':<10}{'预测':<26}{'真实':<14}标题")
-        print(f"  {'-' * 74}")
-        for r in wrong[:15]:
+        # ★ 逐条做归因分类 —— 但"归因"和"对错"是两件事：
+        #   对错只有一个是非，归因有五种性质完全不同的原因，
+        #   而其中两种**根本不是模型的问题**。
+        #   只报"错了 N 条"会把行动方向指向模型，而病灶可能在评测。
+        for r in wrong:
+            verdicts.append(classify_error_detailed(
+                r["predicted"], r["gold"],
+                {
+                    "title": r["title"],
+                    "error": r.get("error", ""),
+                    # ★ 粗化函数由**调用方**传入 —— 别名表只有一份（就是本脚本的
+                    #   `to_coarse`），taxonomy 模块不复制它。
+                    "coarsen": to_coarse,
+                    # ★ 必须传粗化**之前**的原始预测：线索正是在粗化那一步丢的。
+                    "predicted_raw": r.get("predicted_raw", []),
+                    # 系统已知的前缀 = 粗化表的键。不在这个集合里的前缀
+                    # 说明模型**没有渠道**知道它该归到哪一类。
+                    "known_prefixes": set(_COARSE_MAP.keys()),
+                }))
+
+        print(f"\n  {'issue':<10}{'预测':<26}{'真实':<14}"
+              f"{'归因':<18}标题")
+        print(f"  {'-' * 90}")
+        for r, v in zip(wrong, verdicts):
+            cat = v.category.value
+            if cat == "evaluation_bug":
+                col = C["yellow"]      # 评测的锅 —— 要显眼，因为它最容易被误记到模型头上
+            elif cat == "tool_failure":
+                col = C["red"]
+            elif cat == "reasoning_error":
+                col = C["dim"]
+            else:
+                col = C["green"]
             print(f"  {r['issue_id']:<10}{str(r['predicted']):<26}"
-                  f"{r['gold'][0]:<14}{r['title'][:26]}")
+                  f"{r['gold'][0]:<14}{col}{cat:<18}{C['reset']}"
+                  f"{r['title'][:30]}")
         if len(wrong) > 15:
             print(f"  {C['dim']}... 还有 {len(wrong) - 15} 条{C['reset']}")
+
+        # ------------------------------------------------------ 分类汇总
+        hr("错误分类（error taxonomy）")
+        rep = taxonomy_report(verdicts)
+
+        print(f"\n  样本量  {rep['样本量']} 条**错误**"
+              f"　{C['dim']}（不是评测集大小 —— 两者别混）{C['reset']}\n")
+        print(f"  {'类别':<14}{'数量':>5}{'占比':>8}   责任归属")
+        print(f"  {'-' * 58}")
+        for name_cn, d in rep["分类"].items():
+            blame = d["责任归属"]
+            col = (C["yellow"] if "评测" in blame
+                   else (C["red"] if "工程" in blame else C["dim"]))
+            print(f"  {name_cn:<14}{d['数量']:>5}{d['占比']:>7.0%}   "
+                  f"{col}{blame}{C['reset']}")
+
+        print(f"\n  {C['bold']}★ 责任归属聚合（决定下一步该动哪里）{C['reset']}")
+        for blame, cnt in rep["责任归属聚合"].items():
+            print(f"    {blame:<20}{cnt:>3} 条")
+
+        # ★ 这一段的用意：把"该找谁修"直接写在报告里。
+        #   本项目真实的 4 条错误里 3 条是评测侧的 ——
+        #   如果只报"错了 4 条"，下一步会去调模型，方向完全是错的。
+        n_model = sum(c for b, c in rep["责任归属聚合"].items() if "模型" in b)
+        n_other = rep["样本量"] - n_model
+        if n_other > n_model:
+            print(f"""
+  {C['yellow']}⚠ {rep['样本量']} 条错误里有 {n_other} 条**不是模型的问题**{C['reset']}
+    {C['dim']}只报"错了 {rep['样本量']} 条"会把方向指向模型，
+      而真正的病灶在评测/工程侧。**修归因指向的那一环**，
+      改模型是白费力气。{C['reset']}""")
+
+        print(f"\n  该怎么做：")
+        for name_cn, d in rep["分类"].items():
+            print(f"    {name_cn:<14}{d['该怎么做']}")
+
+        print(f"\n  {C['dim']}{rep['提示']}{C['reset']}")
+        if rep["证据强度不足比例"]:
+            print(f"  {C['dim']}证据强度不足比例 {rep['证据强度不足比例']:.0%} —— "
+                  f"这部分落到了兜底分支（未定位到具体误导源），"
+                  f"需要人工看原文才能进一步细分{C['reset']}")
+        if rep["信息不足比例"]:
+            print(f"  {C['dim']}信息不足比例 {rep['信息不足比例']:.0%} —— "
+                  f"这部分分类不可靠，需人工复核{C['reset']}")
+
+        # ★ Mock 数据的结论不能进正式报告 —— 这句必须出现在**同一屏内**，
+        #   否则有人会截图 taxonomy 段落去引用（它看起来很像结论）。
+        if not real:
+            print(f"""
+  {C['red']}⚠ 以上分类基于 Mock 模型（规则版）的预测{C['reset']}
+    {C['dim']}Mock 只能验证**评测流程通不通**，不能验证**模型准不准** ——
+      这里的高错误率反映的是 Mock 的能力上限，不是系统的真实水平。
+      **本段结论不用于正式报告**（评论文档、对外材料）
+      正式口径需要真实模型的结果。{C['reset']}""")
 
     # 与离线评测对比
     hr("★ 前瞻验证 vs 离线评测（本实验最有价值的部分）")
